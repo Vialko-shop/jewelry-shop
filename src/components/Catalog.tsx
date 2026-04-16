@@ -1,107 +1,95 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { products, categories, materials } from '@/data/products';
 import ProductCard from './ProductCard';
 
+function useSectionVisible() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold: 0.1 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
+}
+
 export default function Catalog() {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [activeMaterial, setActiveMaterial] = useState('all');
-  const [sortBy, setSortBy] = useState('default');
+  const [cat, setCat] = useState('all');
+  const [mat, setMat] = useState('all');
+  const [sort, setSort] = useState('default');
+  const { ref, visible } = useSectionVisible();
 
   const filtered = products
-    .filter(p => activeCategory === 'all' || p.category === activeCategory)
-    .filter(p => activeMaterial === 'all' || p.material === activeMaterial)
-    .sort((a, b) => {
-      if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
-      return 0;
-    });
+    .filter(p => cat === 'all' || p.category === cat)
+    .filter(p => mat === 'all' || p.material === mat)
+    .sort((a, b) => sort === 'price-asc' ? a.price - b.price : sort === 'price-desc' ? b.price - a.price : 0);
 
   return (
-    <section id="catalog" className="py-24 px-6" style={{ background: 'var(--cream)' }}>
-      <div className="max-w-7xl mx-auto">
+    <section id="catalog" style={{ padding: 'clamp(64px, 8vw, 100px) 0', background: 'var(--ivory)' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 clamp(16px, 4vw, 48px)' }}>
 
-        {/* Section title */}
-        <div className="text-center mb-16">
-          <p className="text-xs tracking-[0.5em] uppercase mb-4"
-            style={{ color: 'var(--gold)', fontFamily: 'Jost', fontWeight: 300 }}>
-            ✦ Наша колекція ✦
-          </p>
-          <h2 className="text-5xl md:text-6xl mb-6" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--dark)' }}>
+        {/* Header */}
+        <div ref={ref} style={{
+          textAlign: 'center',
+          marginBottom: 'clamp(40px, 5vw, 64px)',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'all 0.7s ease',
+        }}>
+          <p className="section-label" style={{ marginBottom: 16 }}>✦ Наша колекція ✦</p>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(2.2rem, 4vw, 3.6rem)', letterSpacing: '0.06em', marginBottom: 20, fontWeight: 400 }}>
             Каталог прикрас
           </h2>
-          <div className="ornament-divider max-w-xs mx-auto">
-            <span style={{ color: 'var(--gold)', fontSize: '0.6rem', letterSpacing: '0.3em', fontFamily: 'Jost' }}>
-              VIALKO
-            </span>
-          </div>
+          <div className="line-gold" />
         </div>
 
-        {/* Category filters */}
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {categories.map(cat => (
-            <button key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className="px-6 py-2 text-xs tracking-widest uppercase transition-all duration-300"
-              style={{
-                fontFamily: 'Jost',
-                border: '1px solid var(--gold-light)',
-                background: activeCategory === cat.id ? 'var(--dark)' : 'transparent',
-                color: activeCategory === cat.id ? 'white' : 'var(--stone)',
-              }}>
-              {cat.name}
+        {/* Filters */}
+        <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+          {categories.map(c => (
+            <button key={c.id} className={`filter-btn${cat === c.id ? ' active' : ''}`} onClick={() => setCat(c.id)}>
+              {c.name}
             </button>
           ))}
         </div>
 
-        {/* Material + Sort row */}
-        <div className="flex flex-wrap gap-2 justify-center items-center mb-12">
-          {materials.map(mat => (
-            <button key={mat.id}
-              onClick={() => setActiveMaterial(mat.id)}
-              className="px-5 py-1.5 text-xs tracking-widest uppercase transition-all duration-300"
-              style={{
-                fontFamily: 'Jost',
-                border: '1px solid transparent',
-                background: activeMaterial === mat.id ? 'var(--gold-light)' : 'transparent',
-                color: activeMaterial === mat.id ? 'var(--dark)' : 'var(--stone)',
-                borderColor: activeMaterial === mat.id ? 'var(--gold)' : 'transparent',
-              }}>
-              {mat.name}
+        <div style={{ marginBottom: 40, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+          {materials.map(m => (
+            <button key={m.id} className={`filter-btn${mat === m.id ? ' active' : ''}`} onClick={() => setMat(m.id)}
+              style={{ padding: '6px 14px' }}>
+              {m.name}
             </button>
           ))}
-
-          <div className="w-px h-5 mx-2" style={{ background: 'var(--gold-light)' }} />
-
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-            className="px-4 py-1.5 text-xs tracking-widest uppercase bg-transparent outline-none"
-            style={{ fontFamily: 'Jost', border: '1px solid var(--gold-light)', color: 'var(--stone)' }}>
-            <option value="default">За замовчуванням</option>
+          <div style={{ width: '0.5px', height: 20, background: 'var(--mist)', margin: '0 4px' }} />
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            style={{ fontFamily: 'var(--font-sans)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', padding: '7px 14px', border: '0.5px solid var(--mist)', background: 'transparent', color: 'var(--stone)', outline: 'none', cursor: 'pointer' }}>
+            <option value="default">Сортування</option>
             <option value="price-asc">Ціна ↑</option>
             <option value="price-desc">Ціна ↓</option>
           </select>
         </div>
 
         {/* Count */}
-        <p className="text-center text-xs mb-10" style={{ color: 'var(--stone)', fontFamily: 'Jost', letterSpacing: '0.15em' }}>
+        <p style={{ textAlign: 'center', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--stone)', marginBottom: 32, fontFamily: 'var(--font-sans)' }}>
           {filtered.length} {filtered.length === 1 ? 'виріб' : 'вироби'}
         </p>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
-          {filtered.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
+        {/* Grid — 2 on mobile, 3 on tablet, 4 on desktop */}
+        <div className="catalog-grid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 'clamp(12px, 2vw, 28px)',
+        }}>
+          <style>{`
+            @media (min-width: 768px)  { .catalog-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+            @media (min-width: 1200px) { .catalog-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+          `}</style>
+          {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
         </div>
 
         {filtered.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-2xl mb-2" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--stone)' }}>
-              Нічого не знайдено
-            </p>
-            <p className="text-sm" style={{ fontFamily: 'Jost', color: 'var(--stone)' }}>
-              Спробуйте інший фільтр
-            </p>
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', color: 'var(--stone)' }}>Нічого не знайдено</p>
           </div>
         )}
       </div>

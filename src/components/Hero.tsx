@@ -1,101 +1,89 @@
 'use client';
 import { ChevronDown } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Hero() {
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => { setTimeout(() => setLoaded(true), 100); }, []);
+  const [visible, setVisible] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 80);
+    const fn = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => { clearTimeout(t); window.removeEventListener('scroll', fn); };
+  }, []);
 
   return (
-    <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden"
-      style={{ background: 'var(--dark)' }}>
+    <section ref={ref} style={{ position: 'relative', minHeight: '94vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--black)' }}>
 
-      {/* Background */}
-      <div className="absolute inset-0">
-        <img
-          src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&q=80"
-          alt="Luxury jewelry"
-          className="w-full h-full object-cover"
-          style={{ opacity: 0.35, transform: 'scale(1.02)' }}
-        />
-        <div className="absolute inset-0" style={{
-          background: 'linear-gradient(135deg, rgba(26,22,20,0.5) 0%, rgba(26,22,20,0.2) 50%, rgba(26,22,20,0.6) 100%)'
-        }} />
+      {/* Parallax BG */}
+      <div style={{ position: 'absolute', inset: 0, transform: `translateY(${scrollY * 0.3}px)`, willChange: 'transform' }}>
+        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1800&q=75"
+          alt="" style={{ width: '100%', height: '110%', objectFit: 'cover', opacity: 0.32, objectPosition: 'center 30%' }} />
       </div>
+      {/* Gradient overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(26,26,26,0.3) 0%, rgba(26,26,26,0.15) 40%, rgba(26,26,26,0.55) 100%)' }} />
 
-      {/* Side ornament lines */}
-      <div className="absolute left-10 top-1/2 -translate-y-1/2 hidden xl:flex flex-col items-center gap-3">
-        <div className="w-px h-24" style={{ background: 'linear-gradient(to bottom, transparent, var(--gold))' }} />
-        <div className="text-xs text-center" style={{ color: 'var(--gold)', fontFamily: 'Jost', letterSpacing: '0.3em', writingMode: 'vertical-rl' }}>
-          VIALKO
-        </div>
-        <div className="w-px h-24" style={{ background: 'linear-gradient(to top, transparent, var(--gold))' }} />
-      </div>
+      {/* Thin side lines */}
+      <div className="hidden xl:block" style={{ position: 'absolute', left: 40, top: '20%', bottom: '20%', width: '0.5px', background: 'linear-gradient(to bottom, transparent, rgba(212,175,55,0.4), transparent)' }} />
+      <div className="hidden xl:block" style={{ position: 'absolute', right: 40, top: '20%', bottom: '20%', width: '0.5px', background: 'linear-gradient(to bottom, transparent, rgba(212,175,55,0.4), transparent)' }} />
 
       {/* Content */}
-      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto"
-        style={{
-          opacity: loaded ? 1 : 0,
-          transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 1s ease',
-        }}>
-
-        <p className="text-xs tracking-[0.6em] uppercase mb-8"
-          style={{ color: 'var(--gold)', fontFamily: 'Jost', fontWeight: 300 }}>
+      <div style={{
+        position: 'relative', zIndex: 2,
+        textAlign: 'center',
+        padding: '0 24px',
+        maxWidth: 820,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1), transform 1.1s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <p style={{ fontSize: '0.58rem', letterSpacing: '0.5em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', fontWeight: 400, marginBottom: 28, opacity: 0.9 }}>
           ✦ &nbsp; Авторські прикраси &nbsp; ✦
         </p>
 
-        <h1 className="text-white mb-4 leading-none"
-          style={{ fontFamily: 'Cormorant Garamond', fontSize: 'clamp(3.5rem, 9vw, 8rem)', fontWeight: 300, letterSpacing: '0.05em' }}>
+        <h1 className="hero-title" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300, fontSize: 'clamp(3.2rem, 8.5vw, 7.5rem)', color: 'white', letterSpacing: '0.04em', lineHeight: 1.08, marginBottom: 8 }}>
           Краса у
         </h1>
-        <h1 className="mb-8 leading-none"
-          style={{ fontFamily: 'Cormorant Garamond', fontSize: 'clamp(3.5rem, 9vw, 8rem)', fontWeight: 300, fontStyle: 'italic', color: 'var(--gold-light)', letterSpacing: '0.02em' }}>
+        <h1 className="gold-text hero-title" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(3.2rem, 8.5vw, 7.5rem)', letterSpacing: '0.02em', lineHeight: 1.08, marginBottom: 36 }}>
           кожній деталі
         </h1>
 
-        {/* Ornament divider */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <div className="w-16 h-px" style={{ background: 'var(--gold)' }} />
-          <span style={{ color: 'var(--gold)', fontSize: '0.8rem' }}>◆</span>
-          <div className="w-16 h-px" style={{ background: 'var(--gold)' }} />
+        {/* Gold line */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 32 }}>
+          <div style={{ width: 48, height: '0.5px', background: 'var(--gold)' }} />
+          <span style={{ color: 'var(--gold)', fontSize: '0.5rem' }}>◆</span>
+          <div style={{ width: 48, height: '0.5px', background: 'var(--gold)' }} />
         </div>
 
-        <p className="text-base mb-12 max-w-xl mx-auto leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'Jost', fontWeight: 300, letterSpacing: '0.05em' }}>
-          Золото, срібло та вишукана біжутерія.<br />Доставляємо по всій Україні Новою Поштою.
+        <p style={{ fontSize: '0.85rem', letterSpacing: '0.06em', lineHeight: 1.8, color: 'rgba(255,255,255,0.58)', fontFamily: 'var(--font-sans)', fontWeight: 300, marginBottom: 44, maxWidth: 460, margin: '0 auto 44px' }}>
+          Золото, срібло та вишукана біжутерія.<br />Доставка по всій Україні.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
-          <a href="#catalog" className="btn-gold px-12 py-4 inline-block">
-            Переглянути колекцію
-          </a>
-          <a href="tel:+380957775000" className="btn-outline px-12 py-4 inline-block">
-            Зателефонувати
-          </a>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 60 }}>
+          <a href="#catalog" className="btn-primary"><span>Переглянути колекцію</span></a>
+          <a href="tel:+380957775000" className="btn-ghost">Зателефонувати</a>
         </div>
 
         {/* Stats */}
-        <div className="flex justify-center gap-16">
-          {[
-            { num: '500+', label: 'Задоволених клієнток' },
-            { num: '5+', label: 'Років досвіду' },
-            { num: '100%', label: 'Оригінальні вироби' },
-          ].map(s => (
-            <div key={s.label} className="text-center">
-              <div className="text-3xl" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--gold)' }}>{s.num}</div>
-              <div className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Jost', letterSpacing: '0.08em' }}>
-                {s.label}
-              </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(24px, 6vw, 64px)' }}>
+          {[['500+', 'Задоволених'], ['5+', 'Років досвіду'], ['100%', 'Оригінал']].map(([num, label]) => (
+            <div key={label} style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: 'var(--gold)', letterSpacing: '0.05em' }}>{num}</div>
+              <div style={{ fontSize: '0.58rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{label}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Scroll hint */}
-      <a href="#catalog" className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold-light)', fontFamily: 'Jost' }}>Дивитись</span>
-        <ChevronDown size={16} style={{ color: 'var(--gold-light)' }} className="animate-bounce" />
+      <a href="#catalog" style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, opacity: 0.45, transition: 'opacity 0.2s', textDecoration: 'none' }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={e => (e.currentTarget.style.opacity = '0.45')}>
+        <span style={{ fontSize: '0.55rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)' }}>Дивитись</span>
+        <ChevronDown size={14} color="var(--gold)" style={{ animation: 'bounce 2s infinite' }} />
+        <style>{`@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }`}</style>
       </a>
     </section>
   );

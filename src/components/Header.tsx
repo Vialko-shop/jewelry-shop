@@ -1,106 +1,172 @@
 'use client';
 import { useCartStore } from '@/store/cartStore';
-import { ShoppingBag, Menu, X, Phone } from 'lucide-react';
+import { ShoppingBag, X, Menu, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+const NAV = [
+  { href: '#catalog', label: 'Каталог' },
+  { href: '#about',   label: 'Про нас' },
+  { href: 'tel:+380957775000', label: '+38 (095) 777-50-00', icon: true },
+];
+
 export default function Header() {
   const { getTotalItems, toggleCart } = useCartStore();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const count = getTotalItems();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
 
   return (
     <>
-      {/* Announcement Bar */}
-      <div className="announcement-bar">
-        ✦ Безкоштовна доставка від 1500 грн &nbsp;|&nbsp; Оплата частинами ПриватБанк &nbsp;|&nbsp; 🚚 Нова Пошта по всій Україні ✦
+      {/* Announcement bar */}
+      <div className="ann-bar">
+        <span>✦ &nbsp; Безкоштовна доставка від <strong>1500 ₴</strong> &nbsp;|&nbsp; Оплата частинами ПриватБанк &nbsp; ✦</span>
       </div>
 
-      <header
-        className="sticky top-0 z-50 transition-all duration-300"
-        style={{
-          background: scrolled ? 'rgba(250, 247, 242, 0.97)' : 'var(--cream)',
-          borderBottom: '1px solid var(--gold-light)',
-          backdropFilter: scrolled ? 'blur(10px)' : 'none',
-          boxShadow: scrolled ? '0 4px 30px rgba(0,0,0,0.06)' : 'none',
-        }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      {/* Main header */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 90,
+        background: scrolled ? 'rgba(253,252,240,0.88)' : 'var(--ivory)',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+        borderBottom: `0.5px solid ${scrolled ? 'var(--mist)' : 'transparent'}`,
+        transition: 'all 0.4s ease',
+        boxShadow: scrolled ? '0 2px 24px rgba(26,26,26,0.06)' : 'none',
+      }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-          {/* Phone (desktop) */}
-          <div className="hidden lg:flex items-center gap-2" style={{ color: 'var(--stone)' }}>
-            <Phone size={13} />
-            <a href="tel:+380957775000" className="text-xs tracking-wider hover:text-yellow-700 transition-colors"
-              style={{ fontFamily: 'Jost' }}>
-              +38 (095) 777-50-00
+          {/* Desktop nav left */}
+          <nav style={{ display: 'flex', gap: 32, flex: 1 }} className="hidden md:flex">
+            <a href="#catalog" style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--stone)', fontWeight: 500, transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
+              Каталог
             </a>
-          </div>
+            <a href="#about" style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--stone)', fontWeight: 500, transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
+              Про нас
+            </a>
+          </nav>
 
-          {/* Logo - centered */}
-          <Link href="/" className="text-center mx-auto lg:mx-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
-            <div className="text-xs tracking-[0.5em] uppercase" style={{ color: 'var(--stone)', fontFamily: 'Jost', fontWeight: 300 }}>
-              ✦ LUXURY JEWELRY ✦
+          {/* Logo center */}
+          <Link href="/" style={{ textDecoration: 'none', textAlign: 'center', flex: '0 0 auto' }}>
+            <div style={{ fontSize: '0.5rem', letterSpacing: '0.55em', textTransform: 'uppercase', color: 'var(--stone)', fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
+              ✦ Luxury Jewelry ✦
             </div>
-            <div className="text-4xl leading-none mt-1" style={{ fontFamily: 'Cormorant Garamond', letterSpacing: '0.1em' }}>
-              <span className="gold-gradient font-medium">VIALKO</span>
+            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-serif)', letterSpacing: '0.18em', lineHeight: 1.1, fontWeight: 400 }}
+              className="gold-text">
+              VIALKO
             </div>
           </Link>
 
-          {/* Right: Nav + Cart */}
-          <div className="flex items-center gap-6 ml-auto">
-            <nav className="hidden lg:flex gap-8">
-              {[
-                { href: '#catalog', label: 'Каталог' },
-                { href: '#about', label: 'Про нас' },
-              ].map(item => (
-                <a key={item.href} href={item.href}
-                  className="text-xs tracking-[0.2em] uppercase transition-colors hover:text-yellow-700"
-                  style={{ color: 'var(--stone)', fontFamily: 'Jost', fontWeight: 400 }}>
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+          {/* Right actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, justifyContent: 'flex-end' }}>
+            {/* Phone desktop */}
+            <a href="tel:+380957775000" className="hidden md:flex" style={{ alignItems: 'center', gap: 6, fontSize: '0.62rem', letterSpacing: '0.1em', color: 'var(--stone)', transition: 'color 0.2s', textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
+              <Phone size={12} />
+              095 777-50-00
+            </a>
 
-            <button onClick={toggleCart} className="relative p-2 transition-transform hover:scale-110">
-              <ShoppingBag size={20} style={{ color: 'var(--dark)' }} />
+            {/* Cart */}
+            <button onClick={toggleCart} style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--black)' }}>
+              <ShoppingBag size={20} strokeWidth={1.5} />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center"
-                  style={{ background: 'var(--gold)', fontFamily: 'Jost', fontSize: '0.65rem' }}>
+                <span style={{
+                  position: 'absolute', top: -4, right: -4,
+                  width: 17, height: 17,
+                  background: 'var(--gold)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.55rem', fontWeight: 600, color: 'var(--black)',
+                }}>
                   {count}
                 </span>
               )}
             </button>
 
-            <button className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            {/* Burger */}
+            <button className="md:hidden" onClick={() => setMenuOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--black)' }}>
+              <Menu size={22} strokeWidth={1.5} />
             </button>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="lg:hidden px-6 pb-6 pt-2" style={{ borderTop: '1px solid var(--gold-light)' }}>
-            <a href="tel:+380957775000" className="flex items-center gap-2 py-3 text-xs tracking-wider"
-              style={{ color: 'var(--stone)', borderBottom: '1px solid var(--gold-light)', fontFamily: 'Jost' }}>
-              <Phone size={13} /> +38 (095) 777-50-00
-            </a>
-            {['Каталог', 'Про нас'].map(item => (
-              <a key={item} href={`#${item.toLowerCase()}`}
-                onClick={() => setMenuOpen(false)}
-                className="block py-3 text-xs tracking-[0.2em] uppercase"
-                style={{ color: 'var(--stone)', borderBottom: '1px solid var(--gold-light)', fontFamily: 'Jost' }}>
-                {item}
-              </a>
-            ))}
-          </div>
-        )}
       </header>
+
+      {/* Mobile menu overlay */}
+      {menuOpen && (
+        <>
+          <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}
+            style={{ animation: 'fadeIn 0.3s ease' }} />
+          <div className="mobile-menu" style={{ animation: 'slideIn 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
+            <style>{`
+              @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+              @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
+            `}</style>
+
+            {/* Close */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48 }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', letterSpacing: '0.15em', color: 'var(--gold)' }}>VIALKO</span>
+              <button onClick={() => setMenuOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Links */}
+            <nav style={{ flex: 1 }}>
+              {[
+                { href: '#catalog', label: 'Каталог' },
+                { href: '#about', label: 'Про нас' },
+              ].map((item, i) => (
+                <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: 'block',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '2rem',
+                    fontWeight: 300,
+                    letterSpacing: '0.08em',
+                    color: 'rgba(255,255,255,0.85)',
+                    padding: '12px 0',
+                    borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s',
+                    animationDelay: `${i * 0.06}s`,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.85)')}>
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+
+            {/* Bottom */}
+            <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.1)', paddingTop: 24 }}>
+              <a href="tel:+380957775000"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--gold)', textDecoration: 'none', fontSize: '0.8rem', letterSpacing: '0.1em' }}>
+                <Phone size={14} /> +38 (095) 777-50-00
+              </a>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

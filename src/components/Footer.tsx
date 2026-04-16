@@ -1,69 +1,48 @@
+'use client';
 import { Phone, Mail, MapPin } from 'lucide-react';
 
-// Partner logos - direct Google Drive viewer URLs
 const PARTNERS = [
-  {
-    name: 'Столична Ювелірна Фабрика',
-    // Using local file downloaded from Google Drive
-    src: '/logos/logo1.jpg',
-  },
-  {
-    name: 'УКР Золото',
-    src: 'https://drive.google.com/thumbnail?id=1bwZQjW4iZuiWlnopPMd506JVAqqjkASC&sz=w400',
-  },
-  {
-    name: 'Золотий Вік',
-    src: 'https://drive.google.com/thumbnail?id=1hZSrVDvcw41RVMUY42T5AZxG_PUIcrej&sz=w400',
-  },
+  { name: 'Столична Ювелірна Фабрика', src: '/logos/logo1.jpg' },
+  { name: 'УКР Золото', src: 'https://drive.google.com/thumbnail?id=1bwZQjW4iZuiWlnopPMd506JVAqqjkASC&sz=w400' },
+  { name: 'Золотий Вік', src: 'https://drive.google.com/thumbnail?id=1hZSrVDvcw41RVMUY42T5AZxG_PUIcrej&sz=w400' },
 ];
 
 export default function Footer() {
   return (
-    <footer id="about" style={{ background: 'var(--dark)', color: 'white' }}>
-      {/* Top ornament */}
-      <div className="text-center pt-12 pb-4">
-        <div className="flex items-center justify-center gap-4">
-          <div className="h-px w-24" style={{ background: 'linear-gradient(to right, transparent, var(--gold))' }} />
-          <span style={{ color: 'var(--gold)', fontSize: '0.6rem', letterSpacing: '0.4em', fontFamily: 'Jost' }}>◆ VIALKO ◆</span>
-          <div className="h-px w-24" style={{ background: 'linear-gradient(to left, transparent, var(--gold))' }} />
-        </div>
+    <footer id="about-footer" style={{ background: 'var(--black)', color: 'white' }}>
+
+      {/* Top divider */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '48px 0 0' }}>
+        <div style={{ height: '0.5px', width: 60, background: 'linear-gradient(to right, transparent, var(--gold))' }} />
+        <span style={{ fontSize: '0.5rem', letterSpacing: '0.5em', fontFamily: 'var(--font-sans)', color: 'var(--gold)', fontWeight: 400 }}>◆ VIALKO ◆</span>
+        <div style={{ height: '0.5px', width: 60, background: 'linear-gradient(to left, transparent, var(--gold))' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px clamp(20px, 4vw, 48px) 0' }}>
+
+        {/* Main grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40, marginBottom: 48 }}>
 
           {/* Brand */}
-          <div className="md:col-span-1">
-            <div className="text-4xl mb-2 gold-gradient" style={{ fontFamily: 'Cormorant Garamond', letterSpacing: '0.1em' }}>
-              VIALKO
-            </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--gold)', fontFamily: 'Jost', letterSpacing: '0.2em' }}>
-              LUXURY JEWELRY
+          <div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', letterSpacing: '0.18em', marginBottom: 6 }}
+              className="gold-text">VIALKO</div>
+            <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 16 }}>
+              Luxury Jewelry
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: 'Jost', fontWeight: 300 }}>
-              Авторські прикраси з золота, срібла та вишукана біжутерія. Кожен виріб — це маленька історія краси.
+            <p style={{ fontSize: '0.78rem', lineHeight: 1.8, color: 'rgba(255,255,255,0.38)', fontFamily: 'var(--font-sans)', fontWeight: 300 }}>
+              Авторські прикраси з золота, срібла та вишукана біжутерія.
             </p>
           </div>
 
           {/* Catalog */}
           <div>
-            <h4 className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>Каталог</h4>
+            <h4 style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 20, fontWeight: 500 }}>Каталог</h4>
             {['Каблучки', 'Сережки', 'Браслети', 'Підвіски', 'Комплекти'].map(item => (
               <a key={item} href="#catalog"
-                className="block text-sm py-1.5 transition-colors hover:text-yellow-400"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Jost', fontWeight: 300 }}>
-                {item}
-              </a>
-            ))}
-          </div>
-
-          {/* Info */}
-          <div>
-            <h4 className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>Інформація</h4>
-            {['Про нас', 'Доставка та оплата', 'Обмін та повернення', 'Гарантія якості'].map(item => (
-              <a key={item} href="#about"
-                className="block text-sm py-1.5 transition-colors hover:text-yellow-400"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Jost', fontWeight: 300 }}>
+                style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.38)', padding: '6px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)', textDecoration: 'none', fontFamily: 'var(--font-sans)', fontWeight: 300, transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}>
                 {item}
               </a>
             ))}
@@ -71,99 +50,74 @@ export default function Footer() {
 
           {/* Contacts */}
           <div>
-            <h4 className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>Контакти</h4>
-            <div className="space-y-3">
-              <a href="tel:+380957775000"
-                className="flex items-center gap-3 text-sm transition-colors hover:text-yellow-400"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Jost', fontWeight: 300 }}>
-                <Phone size={14} style={{ color: 'var(--gold)', flexShrink: 0 }} />
-                +38 (095) 777-50-00
+            <h4 style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 20, fontWeight: 500 }}>Контакти</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <a href="tel:+380957775000" style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', textDecoration: 'none', fontFamily: 'var(--font-sans)', fontWeight: 300, transition: 'color 0.2s', alignItems: 'center' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}>
+                <Phone size={13} style={{ color: 'var(--gold)', flexShrink: 0 }} /> +38 (095) 777-50-00
               </a>
-              <div className="flex items-center gap-3 text-sm"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Jost', fontWeight: 300 }}>
-                <Mail size={14} style={{ color: 'var(--gold)', flexShrink: 0 }} />
-                info@vialko.com.ua
+              <div style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', fontFamily: 'var(--font-sans)', fontWeight: 300, alignItems: 'center' }}>
+                <Mail size={13} style={{ color: 'var(--gold)', flexShrink: 0 }} /> info@vialko.com.ua
               </div>
-              <div className="flex items-start gap-3 text-sm"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Jost', fontWeight: 300 }}>
-                <MapPin size={14} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 2 }} />
-                Доставка по всій Україні<br />Нова Пошта
+              <div style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', fontFamily: 'var(--font-sans)', fontWeight: 300, alignItems: 'flex-start' }}>
+                <MapPin size={13} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 2 }} /> Доставка Новою Поштою по всій Україні
               </div>
             </div>
           </div>
         </div>
 
+        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 40 }} />
+
         {/* Trust badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-8 mb-10"
-          style={{ borderTop: '1px solid rgba(201,168,76,0.2)', borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20, marginBottom: 40 }}>
+          <style>{`@media(min-width:640px){.trust-grid{grid-template-columns:repeat(4,1fr)!important}}`}</style>
           {[
             { icon: '🔐', title: 'Безпечна оплата', desc: 'LiqPay / ПриватБанк' },
             { icon: '🚚', title: 'Нова Пошта', desc: 'По всій Україні' },
             { icon: '💎', title: '100% Оригінал', desc: 'Сертифікати якості' },
             { icon: '🔄', title: 'Обмін 14 днів', desc: 'Гарантія повернення' },
           ].map(item => (
-            <div key={item.title} className="text-center">
-              <div className="text-2xl mb-2">{item.icon}</div>
-              <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'white', fontFamily: 'Jost', fontWeight: 400 }}>{item.title}</div>
-              <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: 'Jost' }}>{item.desc}</div>
+            <div key={item.title} style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>{item.icon}</div>
+              <div style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', fontWeight: 400, marginBottom: 4 }}>{item.title}</div>
+              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.28)', fontFamily: 'var(--font-sans)' }}>{item.desc}</div>
             </div>
           ))}
         </div>
 
-        {/* ✦ PARTNERS SECTION ✦ */}
-        <div className="mb-10">
-          <div className="text-center mb-8">
-            <p className="text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-              Наші партнери
-            </p>
-            <div className="flex items-center justify-center gap-4 mt-2">
-              <div className="h-px w-16" style={{ background: 'rgba(201,168,76,0.3)' }} />
-              <span style={{ color: 'var(--gold)', fontSize: '0.5rem' }}>◆</span>
-              <div className="h-px w-16" style={{ background: 'rgba(201,168,76,0.3)' }} />
-            </div>
-          </div>
+        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 40 }} />
 
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-            {PARTNERS.map((partner) => (
-              <div key={partner.name}
-                className="flex flex-col items-center gap-2 transition-all duration-300 hover:opacity-100"
-                style={{ opacity: 0.6 }}
-                title={partner.name}>
-                <div className="bg-white flex items-center justify-center"
-                  style={{ width: '180px', height: '100px', padding: '10px', borderRadius: '4px' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={partner.src}
-                    alt={partner.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      objectPosition: 'center',
-                    }}
-                  />
-                </div>
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Jost', fontSize: '0.6rem', letterSpacing: '0.1em', textAlign: 'center' }}>
-                  {partner.name}
-                </span>
+        {/* Partners */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <p style={{ fontSize: '0.55rem', letterSpacing: '0.35em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
+            Наші партнери
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 24, alignItems: 'center' }}>
+            {PARTNERS.map(p => (
+              <div key={p.name} title={p.name}
+                style={{ background: 'white', width: 160, height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, opacity: 0.55, transition: 'opacity 0.25s' }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '0.55')}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.src} alt={p.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.5rem' }}>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: 'Jost' }}>
+        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 24 }} />
+
+        {/* Bottom row */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingBottom: 32 }}>
+          <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-sans)' }}>
             © 2025 VIALKO. Всі права захищені.
           </p>
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg"
-              alt="Mastercard" className="h-5 opacity-40" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg" alt="Mastercard" style={{ height: 18, opacity: 0.3 }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
-              alt="Visa" className="h-4 opacity-40" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" style={{ height: 14, opacity: 0.3 }} />
           </div>
         </div>
       </div>
