@@ -13,25 +13,30 @@ export default function Home() {
         <Hero />
         <Catalog />
 
-        {/* Trust section */}
-        <section className="py-16 px-6" style={{ background: 'var(--charcoal)' }}>
-          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            {[
-              { icon: '🔐', title: 'Безпечна оплата', desc: 'LiqPay / ПриватБанк' },
-              { icon: '🚚', title: 'Нова Пошта', desc: 'Доставка по всій Україні' },
-              { icon: '💎', title: '100% Оригінал', desc: 'Сертифікати якості' },
-              { icon: '🔄', title: 'Обмін 14 днів', desc: 'Гарантія повернення' },
-            ].map(item => (
-              <div key={item.title} className="p-6">
-                <div className="text-3xl mb-3">{item.icon}</div>
-                <h4 className="text-white mb-1" style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.1rem' }}>
-                  {item.title}
-                </h4>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Jost' }}>
-                  {item.desc}
-                </p>
-              </div>
-            ))}
+        {/* About section */}
+        <section className="py-20 px-6" style={{ background: 'white' }}>
+          <div className="max-w-4xl mx-auto text-center">
+            <p className="text-xs tracking-[0.5em] uppercase mb-4" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>
+              ✦ Про нас ✦
+            </p>
+            <h2 className="text-4xl md:text-5xl mb-8" style={{ fontFamily: 'Cormorant Garamond' }}>
+              Прикраси зі серця
+            </h2>
+            <div className="ornament-divider max-w-xs mx-auto mb-8">
+              <span style={{ color: 'var(--gold)', fontSize: '0.6rem', letterSpacing: '0.3em', fontFamily: 'Jost' }}>◆</span>
+            </div>
+            <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--stone)', fontFamily: 'Jost', fontWeight: 300 }}>
+              Кожна прикраса VIALKO — це авторська робота з любов&apos;ю до деталей. Ми працюємо з золотом 585 проби,
+              срібом 925, натуральними перлами та кристалами найвищої якості.
+            </p>
+            <p className="text-base leading-relaxed" style={{ color: 'var(--stone)', fontFamily: 'Jost', fontWeight: 300 }}>
+              Доставляємо по всій Україні Новою Поштою. Оплата зручним для вас способом — карткою ПриватБанку або накладеним платежем.
+            </p>
+            <div className="mt-10">
+              <a href="tel:+380957775000" className="btn-gold px-10 py-4 inline-block">
+                Зателефонувати: +38 (095) 777-50-00
+              </a>
+            </div>
           </div>
         </section>
       </main>

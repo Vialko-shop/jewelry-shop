@@ -1,6 +1,14 @@
 import { Product } from '@/store/cartStore';
 
-export const products: Product[] = [
+export type ProductStatus = 'in_stock' | 'on_order' | 'sold';
+
+export interface ExtendedProduct extends Product {
+  status: ProductStatus;
+  image2?: string; // hover image
+  badges?: string[];
+}
+
+export const products: ExtendedProduct[] = [
   {
     id: 'ring-001',
     name: 'Pearl Rose Ring',
@@ -9,10 +17,13 @@ export const products: Product[] = [
     material: 'gold',
     category: 'ring',
     image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80',
     description: 'Витончене кільце з натуральними перлами. Рожеве золото 585 проби, цирконій.',
     inStock: true,
     weight: '3.2г',
     size: '16-19',
+    status: 'in_stock',
+    badges: ['Хіт'],
   },
   {
     id: 'earrings-001',
@@ -22,9 +33,12 @@ export const products: Product[] = [
     material: 'gold',
     category: 'earrings',
     image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&q=80',
     description: 'Елегантні сережки з білими перлами та кристалами. Рожеве золото 585.',
     inStock: true,
     weight: '4.1г',
+    status: 'in_stock',
+    badges: ['Новинка'],
   },
   {
     id: 'set-001',
@@ -34,9 +48,12 @@ export const products: Product[] = [
     material: 'gold',
     category: 'set',
     image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&q=80',
     description: 'Розкішний комплект з перлами, рожевим золотом та діамантовою огранкою цирконію.',
     inStock: true,
     weight: '7.3г',
+    status: 'in_stock',
+    badges: ['Ексклюзив', 'Хіт'],
   },
   {
     id: 'bracelet-001',
@@ -46,9 +63,12 @@ export const products: Product[] = [
     material: 'gold',
     category: 'bracelet',
     image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1573408301185-9519f94815b2?w=600&q=80',
     description: 'Тонкий золотий браслет плетіння "Якір". Золото 585 проби.',
     inStock: true,
     weight: '5.0г',
+    status: 'on_order',
+    badges: ['Під замовлення'],
   },
   {
     id: 'necklace-001',
@@ -58,9 +78,11 @@ export const products: Product[] = [
     material: 'silver',
     category: 'necklace',
     image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600&q=80',
     description: 'Мінімалістична срібна підвіска у формі місяця. Срібло 925 з позолотою.',
     inStock: true,
     weight: '2.1г',
+    status: 'in_stock',
   },
   {
     id: 'ring-002',
@@ -70,10 +92,12 @@ export const products: Product[] = [
     material: 'silver',
     category: 'ring',
     image: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&q=80',
     description: 'Широке срібне кільце з доріжкою білих цирконів. Срібло 925.',
     inStock: true,
     weight: '4.5г',
     size: '15-20',
+    status: 'in_stock',
   },
   {
     id: 'earrings-002',
@@ -83,8 +107,10 @@ export const products: Product[] = [
     material: 'bijouterie',
     category: 'earrings',
     image: 'https://images.unsplash.com/photo-1573408301185-9519f94815b2?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&q=80',
     description: 'Стильні сережки-кільця прикрашені гранованими кристалами. Гіпоалергенний сплав.',
-    inStock: true,
+    inStock: false,
+    status: 'sold',
   },
   {
     id: 'bracelet-002',
@@ -94,8 +120,11 @@ export const products: Product[] = [
     material: 'bijouterie',
     category: 'bracelet',
     image: 'https://images.unsplash.com/photo-1620186343133-e9f68a4ad74a?w=600&q=80',
+    image2: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&q=80',
     description: 'Делікатний браслет-ланцюжок з підвісними чарками. Позолота 18К.',
     inStock: true,
+    status: 'in_stock',
+    badges: ['Новинка'],
   },
 ];
 
@@ -109,8 +138,14 @@ export const categories = [
 ];
 
 export const materials = [
-  { id: 'all', name: 'Всі матеріали' },
+  { id: 'all', name: 'Всі' },
   { id: 'gold', name: 'Золото' },
   { id: 'silver', name: 'Срібло' },
   { id: 'bijouterie', name: 'Біжутерія' },
 ];
+
+export const statusLabels: Record<ProductStatus, { label: string; color: string }> = {
+  in_stock: { label: 'В наявності', color: '#22c55e' },
+  on_order: { label: 'Під замовлення', color: '#f59e0b' },
+  sold: { label: 'Продано', color: '#ef4444' },
+};
