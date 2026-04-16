@@ -4,15 +4,16 @@ import { Phone, Mail, MapPin } from 'lucide-react';
 const PARTNERS = [
   {
     name: 'Столична Ювелірна Фабрика',
-    src: 'https://drive.google.com/thumbnail?id=1V1k6Vtj9qUUxN3iUY7ofsZ8I1Zra1eyZ&sz=w300',
+    // Using local file downloaded from Google Drive
+    src: '/logos/logo1.jpg',
   },
   {
     name: 'УКР Золото',
-    src: 'https://drive.google.com/thumbnail?id=1bwZQjW4iZuiWlnopPMd506JVAqqjkASC&sz=w300',
+    src: 'https://drive.google.com/thumbnail?id=1bwZQjW4iZuiWlnopPMd506JVAqqjkASC&sz=w400',
   },
   {
     name: 'Золотий Вік',
-    src: 'https://drive.google.com/thumbnail?id=1hZSrVDvcw41RVMUY42T5AZxG_PUIcrej&sz=w300',
+    src: 'https://drive.google.com/thumbnail?id=1hZSrVDvcw41RVMUY42T5AZxG_PUIcrej&sz=w400',
   },
 ];
 
@@ -125,18 +126,26 @@ export default function Footer() {
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
             {PARTNERS.map((partner) => (
               <div key={partner.name}
-                className="flex items-center justify-center transition-all duration-300 hover:opacity-100"
-                style={{ opacity: 0.55 }}
+                className="flex flex-col items-center gap-2 transition-all duration-300 hover:opacity-100"
+                style={{ opacity: 0.6 }}
                 title={partner.name}>
-                <div className="bg-white rounded flex items-center justify-center overflow-hidden"
-                  style={{ width: '140px', height: '80px', padding: '8px' }}>
+                <div className="bg-white flex items-center justify-center"
+                  style={{ width: '180px', height: '100px', padding: '10px', borderRadius: '4px' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={partner.src}
                     alt={partner.name}
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      objectPosition: 'center',
+                    }}
                   />
                 </div>
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Jost', fontSize: '0.6rem', letterSpacing: '0.1em', textAlign: 'center' }}>
+                  {partner.name}
+                </span>
               </div>
             ))}
           </div>
