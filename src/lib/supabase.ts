@@ -1,14 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Public keys are safe to expose in the browser.
-// Data access is protected by RLS policies on the Supabase side.
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-export const supabase = createClient(url, anonKey, {
-  auth: { persistSession: true, autoRefreshToken: true },
-});
-
-export const isSupabaseConfigured = Boolean(url && anonKey);
-
+export const isSupabaseConfigured = Boolean(url && anon);
 export const PHOTO_BUCKET = 'product-photos';
+
+// Guard: if env vars are missing, fall back to a harmless placeholder so module
+// import never throws. Every data/auth call is gated behind `isSupabaseConfigured`,
+// so this placeholder client is never actually used — the site just shows the
+// static fallback catalog instead of crashing.
+export const supabase = createClient(
+  url || 'https://placeholder.supabase.co',
+  anon || 'placeholder-anon-key'
+);
