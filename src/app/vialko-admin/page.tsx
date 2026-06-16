@@ -1,202 +1,133 @@
 'use client';
-import { useState } from 'react';
-import { products as initialProducts, statusLabels, ExtendedProduct, ProductStatus } from '@/data/products';
-import { Lock, Save, Eye, EyeOff, Package, TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
 
-const ADMIN_PASSWORD = 'vialko2025';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  getProducts, updateProductPrice, uploadProductPhoto, updateProductImage,
+  signIn, signOut, getCurrentUser,
+} from '@/lib/products';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import type { ExtendedProduct } from '@/data/products';
+import PhotoSlot from '@/components/PhotoSlot';
 
 export default function AdminPage() {
+  const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
-  const [products, setProducts] = useState<ExtendedProduct[]>(initialProducts);
-  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [items, setItems] = useState<ExtendedProduct[]>([]);
+  const [prices, setPrices] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState<Record<string, string>>({});
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setAuthed(true);
-    } else {
-      setError('Невірний пароль');
-    }
+  const load = useCallback(async () => {
+    const data = await getProducts();
+    setItems(data);
+    const p: Record<string, string> = {};
+    data.forEach((d) => (p[d.id] = String(d.price)));
+    setPrices(p);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured) { setChecking(false); return; }
+      try {
+        const u = await getCurrentUser();
+        if (u) { setAuthed(true); await load(); }
+      } catch { /* not logged in */ }
+      setChecking(false);
+    })();
+  }, [load]);
+
+  const onLogin = async () => {
+    setErr(''); setBusy(true);
+    try { await signIn(email.trim(), password); setAuthed(true); await load(); }
+    catch { setErr('Невірний email або пароль. Спробуйте ще раз.'); }
+    finally { setBusy(false); }
   };
 
-  const updateProduct = (id: string, field: keyof ExtendedProduct, value: string | number) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-    setSaved(false);
+  const onLogout = async () => { await signOut(); setAuthed(false); setItems([]); };
+
+  const savePrice = async (id: string) => {
+    const val = Number(prices[id]);
+    if (!Number.isFinite(val) || val < 0) return;
+    setSaved((s) => ({ ...s, [id]: '…' }));
+    try {
+      await updateProductPrice(id, val);
+      setSaved((s) => ({ ...s, [id]: 'Збережено ✓' }));
+      setTimeout(() => setSaved((s) => ({ ...s, [id]: '' })), 2500);
+    } catch { setSaved((s) => ({ ...s, [id]: 'Помилка' })); }
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const uploadPhoto = async (id: string, file: File | null) => {
+    if (!file) return;
+    setSaved((s) => ({ ...s, [id]: 'Завантаження…' }));
+    try {
+      const url = await uploadProductPhoto(file, id);
+      await updateProductImage(id, url);
+      setItems((list) => list.map((it) => (it.id === id ? { ...it, image: url } : it)));
+      setSaved((s) => ({ ...s, [id]: 'Фото оновлено ✓' }));
+      setTimeout(() => setSaved((s) => ({ ...s, [id]: '' })), 2500);
+    } catch { setSaved((s) => ({ ...s, [id]: 'Помилка фото' })); }
   };
 
-  const totalValue = products.reduce((sum, p) => sum + p.price, 0);
-  const inStock = products.filter(p => p.status === 'in_stock').length;
-  const sold = products.filter(p => p.status === 'sold').length;
+  if (checking) return <div className="adm"><p className="hint">Завантаження…</p></div>;
 
-  if (!authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--dark)' }}>
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <div className="text-4xl mb-2 gold-gradient" style={{ fontFamily: 'Cormorant Garamond', letterSpacing: '0.1em' }}>
-              VIALKO
-            </div>
-            <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>
-              Admin Panel
-            </p>
-          </div>
-          <form onSubmit={handleLogin} className="p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,168,76,0.3)' }}>
-            <div className="flex items-center gap-2 mb-6 justify-center" style={{ color: 'var(--gold)' }}>
-              <Lock size={16} />
-              <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'Jost' }}>Захищений вхід</span>
-            </div>
-            <div className="relative mb-4">
-              <input
-                type={showPass ? 'text' : 'password'}
-                placeholder="Пароль"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 text-sm outline-none text-white pr-10"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(201,168,76,0.3)', fontFamily: 'Jost' }}
-              />
-              <button type="button" onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--stone)' }}>
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {error && <p className="text-red-400 text-xs mb-3 text-center" style={{ fontFamily: 'Jost' }}>{error}</p>}
-            <button type="submit" className="btn-gold w-full py-3">Увійти</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+  if (!isSupabaseConfigured) return (
+    <div className="adm"><div className="adm-card">
+      <div className="adm-logo">VIALKO</div>
+      <div className="adm-logo-sub">Адмін-панель</div>
+      <p className="hint" style={{ marginTop: 20 }}>База даних ще не підключена.</p>
+    </div></div>
+  );
+
+  if (!authed) return (
+    <div className="adm"><div className="adm-card">
+      <div className="adm-logo">VIALKO</div>
+      <div className="adm-logo-sub">Адмін-панель</div>
+      <h1>Вхід</h1>
+      <p className="hint">Введіть логін та пароль, щоб редагувати ціни та фото.</p>
+      <div className="field"><label>Email</label>
+        <input type="email" value={email} autoComplete="username"
+          onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onLogin()} /></div>
+      <div className="field"><label>Пароль</label>
+        <input type="password" value={password} autoComplete="current-password"
+          onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onLogin()} /></div>
+      {err && <div className="err">{err}</div>}
+      <button className="btn btn-gold" style={{ width: '100%' }} type="button" onClick={onLogin} disabled={busy}>
+        {busy ? 'Вхід…' : 'Увійти'}
+      </button>
+    </div></div>
+  );
 
   return (
-    <div className="min-h-screen" style={{ background: '#0f0d0c', color: 'white' }}>
-      {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-        <div className="flex items-center gap-4">
-          <div className="text-xl gold-gradient" style={{ fontFamily: 'Cormorant Garamond', letterSpacing: '0.1em' }}>VIALKO</div>
-          <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-            / Admin Panel
-          </span>
+    <div className="adm">
+      <div className="adm-top">
+        <div>
+          <div className="adm-logo" style={{ fontSize: 24 }}>VIALKO</div>
+          <div className="who">Редагування цін та фото · {items.length} товарів</div>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="/" target="_blank"
-            className="text-xs tracking-widest uppercase px-4 py-2 transition-colors hover:text-yellow-400"
-            style={{ color: 'var(--stone)', fontFamily: 'Jost', border: '1px solid rgba(201,168,76,0.3)' }}>
-            Переглянути сайт ↗
-          </a>
-          <button onClick={handleSave}
-            className="btn-gold px-5 py-2 flex items-center gap-2 text-xs">
-            <Save size={14} />
-            {saved ? '✓ Збережено!' : 'Зберегти'}
-          </button>
-        </div>
+        <button className="btn btn-ghost btn-sm" type="button" onClick={onLogout}>Вийти</button>
       </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: Package, label: 'Всього товарів', value: products.length, color: '#C9A84C' },
-            { icon: ShoppingBag, label: 'В наявності', value: inStock, color: '#22c55e' },
-            { icon: TrendingUp, label: 'Продано', value: sold, color: '#ef4444' },
-            { icon: DollarSign, label: 'Сума каталогу', value: totalValue.toLocaleString('uk-UA') + ' ₴', color: '#C9A84C' },
-          ].map(stat => (
-            <div key={stat.label} className="p-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,168,76,0.15)' }}>
-              <stat.icon size={20} style={{ color: stat.color, marginBottom: 8 }} />
-              <div className="text-2xl font-light" style={{ fontFamily: 'Cormorant Garamond', color: 'white' }}>
-                {stat.value}
-              </div>
-              <div className="text-xs mt-1" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                {stat.label}
-              </div>
+      <div className="adm-list">
+        {items.map((it) => (
+          <div className="adm-row" key={it.id}>
+            <div className="adm-thumb"><PhotoSlot src={it.image || null} alt={it.nameUa} label=" " /></div>
+            <div>
+              <div className="nm">{it.nameUa}</div>
+              <div className="meta">{it.material === 'gold' ? 'Золото' : it.material === 'silver' ? 'Срібло' : 'Біжутерія'}</div>
+              <div className="adm-saved">{saved[it.id] || ''}</div>
             </div>
-          ))}
-        </div>
-
-        {/* Products table */}
-        <div style={{ border: '1px solid rgba(201,168,76,0.2)' }}>
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-            <h2 className="text-lg" style={{ fontFamily: 'Cormorant Garamond' }}>Управління товарами</h2>
-            <p className="text-xs mt-1" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-              Редагуйте ціни, назви та статуси прямо в таблиці
-            </p>
+            <div className="adm-controls">
+              <div className="adm-field"><label>Ціна, ₴</label>
+                <input type="number" min={0} value={prices[it.id] ?? ''}
+                  onChange={(e) => setPrices((p) => ({ ...p, [it.id]: e.target.value }))} /></div>
+              <button className="btn btn-gold btn-sm" type="button" onClick={() => savePrice(it.id)}>Зберегти ціну</button>
+              <label className="btn btn-ghost btn-sm adm-photo-btn">Завантажити фото
+                <input type="file" accept="image/*" onChange={(e) => uploadPhoto(it.id, e.target.files?.[0] || null)} /></label>
+            </div>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
-                  {['Фото', 'Назва', 'Ціна (₴)', 'Статус', 'Матеріал'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs tracking-widest uppercase"
-                      style={{ color: 'var(--gold)', fontFamily: 'Jost', fontWeight: 400 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product, i) => (
-                  <tr key={product.id}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                    <td className="px-4 py-3">
-                      <img src={product.image} alt="" className="w-12 h-12 object-cover" />
-                    </td>
-                    <td className="px-4 py-3 min-w-[200px]">
-                      <input
-                        value={product.nameUa}
-                        onChange={e => updateProduct(product.id, 'nameUa', e.target.value)}
-                        className="w-full text-sm bg-transparent outline-none border-b border-transparent hover:border-yellow-700 focus:border-yellow-600 transition-colors text-white py-1"
-                        style={{ fontFamily: 'Cormorant Garamond', fontSize: '1rem' }}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        value={product.price}
-                        onChange={e => updateProduct(product.id, 'price', Number(e.target.value))}
-                        className="w-24 text-sm bg-transparent outline-none border-b border-transparent hover:border-yellow-700 focus:border-yellow-600 transition-colors text-white py-1"
-                        style={{ fontFamily: 'Jost', color: 'var(--gold)' }}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={product.status}
-                        onChange={e => updateProduct(product.id, 'status', e.target.value as ProductStatus)}
-                        className="text-xs py-1 px-2 outline-none bg-transparent border rounded"
-                        style={{
-                          fontFamily: 'Jost',
-                          color: statusLabels[product.status as ProductStatus].color,
-                          borderColor: statusLabels[product.status as ProductStatus].color + '50',
-                        }}>
-                        <option value="in_stock">В наявності</option>
-                        <option value="on_order">Під замовлення</option>
-                        <option value="sold">Продано</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-1 uppercase tracking-wider" style={{
-                        fontFamily: 'Jost',
-                        background: product.material === 'gold' ? 'rgba(201,168,76,0.15)' : 'rgba(168,168,179,0.15)',
-                        color: product.material === 'gold' ? '#C9A84C' : '#A8A8B3',
-                      }}>
-                        {product.material === 'gold' ? 'Золото' : product.material === 'silver' ? 'Срібло' : 'Біжутерія'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-          ⚠️ Зміни зберігаються локально. Для постійного збереження — оновіть файл /data/products.ts
-        </p>
+        ))}
       </div>
     </div>
   );
