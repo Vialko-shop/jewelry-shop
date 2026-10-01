@@ -1,123 +1,124 @@
-'use client';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { Phone, Mail, Truck, ShieldCheck, Gift, CreditCard } from 'lucide-react';
+import { SITE, INFO_LINKS } from '@/lib/site';
+import { CATEGORIES, MATERIALS, BADGES } from '@/lib/taxonomy';
+import { money } from '@/lib/format';
+import Logo from './Logo';
+import { PayBadge } from './Icons';
 
-const PARTNERS = [
-  { name: 'Столична Ювелірна Фабрика', src: '/logos/logo1.jpg' },
-  { name: 'УКР Золото', src: 'https://drive.google.com/thumbnail?id=1bwZQjW4iZuiWlnopPMd506JVAqqjkASC&sz=w400' },
-  { name: 'Золотий Вік', src: 'https://drive.google.com/thumbnail?id=1hZSrVDvcw41RVMUY42T5AZxG_PUIcrej&sz=w400' },
-];
+export const BENEFITS = [
+  { icon: Truck, title: 'Безкоштовна доставка', text: `Новою поштою від ${money(SITE.freeShippingFrom)}` },
+  { icon: ShieldCheck, title: 'Гарантія якості', text: 'Перевіряємо кожну прикрасу перед відправкою' },
+  { icon: Gift, title: 'Фірмова упаковка', text: 'Прикраса готова до подарунка' },
+  { icon: CreditCard, title: 'Безпечна оплата', text: 'Visa / Mastercard через LiqPay' },
+] as const;
 
 export default function Footer() {
+  const socials = Object.entries(SITE.socials).filter(([, v]) => v);
   return (
-    <footer id="about-footer" style={{ background: 'var(--black)', color: 'white' }}>
-
-      {/* Top divider */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '48px 0 0' }}>
-        <div style={{ height: '0.5px', width: 60, background: 'linear-gradient(to right, transparent, var(--gold))' }} />
-        <span style={{ fontSize: '0.5rem', letterSpacing: '0.5em', fontFamily: 'var(--font-sans)', color: 'var(--gold)', fontWeight: 400 }}>◆ VIALKO ◆</span>
-        <div style={{ height: '0.5px', width: 60, background: 'linear-gradient(to left, transparent, var(--gold))' }} />
+    <footer className="mt-10 bg-night text-[#cfc6b8]">
+      <div className="border-b border-white/10">
+        <ul className="wrap grid grid-cols-2 gap-x-4 gap-y-6 py-8 md:grid-cols-4">
+          {BENEFITS.map(({ icon: I, title, text }) => (
+            <li key={title} className="flex items-start gap-3">
+              <I size={24} strokeWidth={1.5} className="mt-0.5 flex-none text-gold" />
+              <span>
+                <b className="block text-[14px] text-white">{title}</b>
+                <span className="text-[12.5px] leading-snug text-[#b8b0a4]">{text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px clamp(20px, 4vw, 48px) 0' }}>
-
-        {/* Main grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40, marginBottom: 48 }}>
-
-          {/* Brand */}
-          <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', letterSpacing: '0.18em', marginBottom: 6 }}
-              className="gold-text">VIALKO</div>
-            <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 16 }}>
-              Luxury Jewelry
-            </p>
-            <p style={{ fontSize: '0.78rem', lineHeight: 1.8, color: 'rgba(255,255,255,0.38)', fontFamily: 'var(--font-sans)', fontWeight: 300 }}>
-              Авторські прикраси з золота, срібла та вишукана біжутерія.
-            </p>
-          </div>
-
-          {/* Catalog */}
-          <div>
-            <h4 style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 20, fontWeight: 500 }}>Каталог</h4>
-            {['Каблучки', 'Сережки', 'Браслети', 'Підвіски', 'Комплекти'].map(item => (
-              <a key={item} href="#catalog"
-                style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.38)', padding: '6px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)', textDecoration: 'none', fontFamily: 'var(--font-sans)', fontWeight: 300, transition: 'color 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}>
-                {item}
-              </a>
-            ))}
-          </div>
-
-          {/* Contacts */}
-          <div>
-            <h4 style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontFamily: 'var(--font-sans)', marginBottom: 20, fontWeight: 500 }}>Контакти</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <a href="tel:+380957775000" style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', textDecoration: 'none', fontFamily: 'var(--font-sans)', fontWeight: 300, transition: 'color 0.2s', alignItems: 'center' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}>
-                <Phone size={13} style={{ color: 'var(--gold)', flexShrink: 0 }} /> +38 (095) 777-50-00
-              </a>
-              <div style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', fontFamily: 'var(--font-sans)', fontWeight: 300, alignItems: 'center' }}>
-                <Mail size={13} style={{ color: 'var(--gold)', flexShrink: 0 }} /> info@vialko.com.ua
-              </div>
-              <div style={{ display: 'flex', gap: 10, color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', fontFamily: 'var(--font-sans)', fontWeight: 300, alignItems: 'flex-start' }}>
-                <MapPin size={13} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 2 }} /> Доставка Новою Поштою по всій Україні
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 40 }} />
-
-        {/* Trust badges */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20, marginBottom: 40 }}>
-          <style>{`@media(min-width:640px){.trust-grid{grid-template-columns:repeat(4,1fr)!important}}`}</style>
-          {[
-            { icon: '🔐', title: 'Безпечна оплата', desc: 'LiqPay / ПриватБанк' },
-            { icon: '🚚', title: 'Нова Пошта', desc: 'По всій Україні' },
-            { icon: '💎', title: '100% Оригінал', desc: 'Сертифікати якості' },
-            { icon: '🔄', title: 'Обмін 14 днів', desc: 'Гарантія повернення' },
-          ].map(item => (
-            <div key={item.title} style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>{item.icon}</div>
-              <div style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', fontWeight: 400, marginBottom: 4 }}>{item.title}</div>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.28)', fontFamily: 'var(--font-sans)' }}>{item.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 40 }} />
-
-        {/* Partners */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <p style={{ fontSize: '0.55rem', letterSpacing: '0.35em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
-            Наші партнери
+      <div className="wrap grid gap-10 py-12 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
+        <div>
+          <Logo invert />
+          <p className="mt-5 max-w-xs text-[13.5px] leading-relaxed text-[#b8b0a4]">
+            Прикраси із золота, срібла та вишукана біжутерія. Дбайливо обираємо, перевіряємо й пакуємо кожен виріб.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 24, alignItems: 'center' }}>
-            {PARTNERS.map(p => (
-              <div key={p.name} title={p.name}
-                style={{ background: 'white', width: 160, height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, opacity: 0.55, transition: 'opacity 0.25s' }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '0.55')}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-              </div>
-            ))}
-          </div>
+          {socials.length > 0 && (
+            <div className="mt-5 flex gap-3">
+              {socials.map(([k, v]) => (
+                <a key={k} href={v} target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold capitalize text-white hover:border-gold">
+                  {k}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
-        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(255,255,255,0.07)', marginBottom: 24 }} />
+        <nav aria-label="Каталог">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[.2em] text-gold">Каталог</p>
+          <ul className="space-y-2 text-[14px]">
+            {CATEGORIES.map((c) => (
+              <li key={c.key}>
+                <Link href={`/catalog/${c.slug}`} className="hover:text-white">
+                  {c.name}
+                </Link>
+              </li>
+            ))}
+            {MATERIALS.map((m) => (
+              <li key={m.key}>
+                <Link href={`/catalog/${m.slug}`} className="hover:text-white">
+                  {m.name}
+                </Link>
+              </li>
+            ))}
+            {BADGES.map((b) => (
+              <li key={b.key}>
+                <Link href={`/catalog/${b.slug}`} className="hover:text-white">
+                  {b.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-        {/* Bottom row */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingBottom: 32 }}>
-          <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-sans)' }}>
-            © 2025 VIALKO. Всі права захищені.
-          </p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg" alt="Mastercard" style={{ height: 18, opacity: 0.3 }} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" style={{ height: 14, opacity: 0.3 }} />
+        <nav aria-label="Покупцям">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[.2em] text-gold">Покупцям</p>
+          <ul className="space-y-2 text-[14px]">
+            {INFO_LINKS.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} className="hover:text-white">
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href="/wishlist" className="hover:text-white">
+                Обране
+              </Link>
+            </li>
+            <li>
+              <Link href="/compare" className="hover:text-white">
+                Порівняння
+              </Link>
+            </li>
+          </ul>
+        </nav>
+
+        <div>
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[.2em] text-gold">Контакти</p>
+          <a href={SITE.phoneHref} className="flex items-center gap-2 text-xl font-extrabold text-white hover:text-gold">
+            <Phone size={18} className="text-gold" /> {SITE.phoneDisplay}
+          </a>
+          <p className="mt-1 text-[12.5px] text-[#b8b0a4]">{SITE.hours}</p>
+          <a href={`mailto:${SITE.email}`} className="mt-4 flex items-center gap-2 text-[14px] hover:text-white">
+            <Mail size={16} className="text-gold" /> {SITE.email}
+          </a>
+          <p className="mt-4 text-[13px] leading-relaxed text-[#b8b0a4]">Доставка Новою поштою по всій Україні — у відділення або поштомат.</p>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10">
+        <div className="wrap flex flex-col items-center justify-between gap-4 py-6 text-[12.5px] text-[#9a9186] md:flex-row">
+          <p>© {new Date().getFullYear()} VIALKO · Віалко. Усі права захищені.</p>
+          <div className="flex flex-wrap items-center justify-center gap-2 opacity-90">
+            <PayBadge>VISA</PayBadge>
+            <PayBadge>Mastercard</PayBadge>
+            <PayBadge>LiqPay</PayBadge>
+            <PayBadge>Нова пошта</PayBadge>
           </div>
         </div>
       </div>

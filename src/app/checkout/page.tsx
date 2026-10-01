@@ -1,15 +1,36 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { Search, ChevronDown, CheckCircle, ArrowLeft } from 'lucide-react';
-import Header from '@/components/Header';
-import Cart from '@/components/Cart';
+import { Search, CheckCircle, ArrowLeft, Lock, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import PhotoSlot from '@/components/PhotoSlot';
+import { FreeShipBar } from '@/components/Cart';
+import { PayBadge } from '@/components/Icons';
+import { useHydrated } from '@/lib/useHydrated';
+import { categoryByKey } from '@/lib/taxonomy';
+import { SITE } from '@/lib/site';
+
+// ⚠️ Логіка оформлення (Nova Poshta + /api/orders + LiqPay) не змінена — оновлено лише вигляд.
 
 interface NpCity { Ref: string; Description: string; }
 interface NpWarehouse { Ref: string; Description: string; Number: string; }
 
+const fmt = (n: number) => `${n.toLocaleString('uk-UA')} ₴`;
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-line bg-white p-5 md:p-7">
+      <h2 className="mb-5 flex items-center gap-3 text-lg font-extrabold">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-ink text-sm text-white">{n}</span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 export default function CheckoutPage() {
+  const hydrated = useHydrated();
   const { items, getTotalPrice, clearCart } = useCartStore();
   const total = getTotalPrice();
 
@@ -98,259 +119,216 @@ export default function CheckoutPage() {
 
   if (submitted) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--cream)' }}>
-          <div className="text-center max-w-md">
-            <CheckCircle size={60} className="mx-auto mb-6" style={{ color: 'var(--gold)' }} />
-            <h1 className="text-4xl mb-4" style={{ fontFamily: 'Cormorant Garamond' }}>Дякуємо!</h1>
-            <p className="text-sm mb-6" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-              Ваше замовлення прийнято. Ми зв&apos;яжемося з вами найближчим часом.
-            </p>
-            <Link href="/" className="btn-gold px-8 py-3 inline-block">
-              На головну
-            </Link>
-          </div>
+      <div className="wrap grid min-h-[60vh] place-items-center py-16 text-center">
+        <div className="max-w-md">
+          <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-gold-soft text-gold-deep">
+            <CheckCircle size={40} />
+          </span>
+          <h1 className="display mt-6 text-5xl">Дякуємо!</h1>
+          <p className="mt-3 text-ink-2">Ваше замовлення прийнято. Ми зв&apos;яжемося з вами найближчим часом.</p>
+          <Link href="/" className="btn btn-ink mt-8">На головну</Link>
         </div>
-      </>
+      </div>
+    );
+  }
+
+  if (!hydrated) {
+    return (
+      <div className="wrap py-10">
+        <div className="skeleton h-10 w-72 rounded-xl" />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="skeleton h-[520px] rounded-2xl" />
+          <div className="skeleton h-[420px] rounded-2xl" />
+        </div>
+      </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--cream)' }}>
-          <div className="text-center">
-            <p className="text-2xl mb-4" style={{ fontFamily: 'Cormorant Garamond' }}>Кошик порожній</p>
-            <Link href="/" className="btn-gold px-8 py-3 inline-block">Перейти до каталогу</Link>
-          </div>
+      <div className="wrap grid min-h-[55vh] place-items-center py-16 text-center">
+        <div>
+          <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-ivory text-gold-deep">
+            <ShoppingBag size={34} strokeWidth={1.4} />
+          </span>
+          <p className="display mt-6 text-4xl">Кошик порожній</p>
+          <p className="mt-2 text-ink-2">Додайте прикраси, щоб оформити замовлення.</p>
+          <Link href="/catalog" className="btn btn-ink mt-7">Перейти до каталогу</Link>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <Header />
-      <Cart />
-      <div className="min-h-screen py-12 px-6" style={{ background: 'var(--cream)' }}>
-        <div className="max-w-6xl mx-auto">
-          <Link href="/" className="flex items-center gap-2 text-xs tracking-widest uppercase mb-8 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-            <ArrowLeft size={14} /> Повернутись до каталогу
-          </Link>
+    <div className="bg-ivory">
+      <div className="wrap py-6 md:py-10">
+        <Link href="/catalog" className="inline-flex items-center gap-2 text-sm font-semibold text-ink-2 hover:text-ink">
+          <ArrowLeft size={16} /> Повернутись до каталогу
+        </Link>
+        <h1 className="display mt-4 text-[38px] md:text-[52px]">Оформлення замовлення</h1>
 
-          <h1 className="text-4xl mb-10" style={{ fontFamily: 'Cormorant Garamond' }}>Оформлення замовлення</h1>
-
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Left: Form */}
-              <div className="lg:col-span-2 space-y-8">
-                
-                {/* Contact */}
-                <div style={{ background: 'white', border: '1px solid var(--gold-light)' }} className="p-6">
-                  <h2 className="text-xl mb-6" style={{ fontFamily: 'Cormorant Garamond' }}>Контактна інформація</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: 'lastName', label: "Прізвище", placeholder: "Петренко" },
-                      { key: 'firstName', label: "Ім'я", placeholder: "Олена" },
-                      { key: 'phone', label: "Телефон", placeholder: "+380 XX XXX XX XX" },
-                      { key: 'email', label: "Email", placeholder: "your@email.com" },
-                    ].map(field => (
-                      <div key={field.key}>
-                        <label className="block text-xs tracking-widest uppercase mb-2"
-                          style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                          {field.label} *
-                        </label>
-                        <input
-                          type={field.key === 'email' ? 'email' : field.key === 'phone' ? 'tel' : 'text'}
-                          required
-                          placeholder={field.placeholder}
-                          value={form[field.key as keyof typeof form]}
-                          onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          className="w-full px-4 py-3 text-sm outline-none"
-                          style={{ border: '1px solid var(--gold-light)', background: 'var(--cream)', fontFamily: 'Jost' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Delivery */}
-                <div style={{ background: 'white', border: '1px solid var(--gold-light)' }} className="p-6">
-                  <h2 className="text-xl mb-6" style={{ fontFamily: 'Cormorant Garamond' }}>
-                    🚚 Доставка Новою Поштою
-                  </h2>
-                  
-                  {/* City search */}
-                  <div className="mb-4 relative">
-                    <label className="block text-xs tracking-widest uppercase mb-2"
-                      style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                      Місто *
-                    </label>
-                    <div className="relative">
+        <form onSubmit={handleSubmit} className="mt-8">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
+            <div className="space-y-5">
+              <Step n={1} title="Контактна інформація">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {[
+                    { key: 'lastName', label: 'Прізвище', placeholder: 'Петренко', auto: 'family-name' },
+                    { key: 'firstName', label: "Ім'я", placeholder: 'Олена', auto: 'given-name' },
+                    { key: 'phone', label: 'Телефон', placeholder: '+380 XX XXX XX XX', auto: 'tel' },
+                    { key: 'email', label: 'Email', placeholder: 'your@email.com', auto: 'email' },
+                  ].map(field => (
+                    <div key={field.key} className="field">
+                      <label className="label" htmlFor={`co-${field.key}`}>{field.label} *</label>
                       <input
-                        type="text"
-                        required={!form.cityRef}
-                        placeholder="Почніть вводити назву міста..."
-                        value={form.citySearch}
-                        onChange={e => {
-                          setForm(prev => ({ ...prev, citySearch: e.target.value, cityRef: '', cityName: '', warehouseRef: '', warehouseName: '' }));
-                          setWarehouses([]);
-                        }}
-                        className="w-full px-4 py-3 text-sm outline-none pr-10"
-                        style={{ border: '1px solid var(--gold-light)', background: 'var(--cream)', fontFamily: 'Jost' }}
+                        id={`co-${field.key}`}
+                        type={field.key === 'email' ? 'email' : field.key === 'phone' ? 'tel' : 'text'}
+                        required
+                        autoComplete={field.auto}
+                        placeholder={field.placeholder}
+                        value={form[field.key as keyof typeof form]}
+                        onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        className="input"
                       />
-                      <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2"
-                        style={{ color: 'var(--stone)' }} />
                     </div>
-                    
-                    {cityLoading && (
-                      <p className="text-xs mt-1 text-center" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                        Пошук...
-                      </p>
-                    )}
+                  ))}
+                </div>
+              </Step>
 
-                    {showCities && cities.length > 0 && !form.cityRef && (
-                      <div className="absolute z-20 w-full mt-1 max-h-48 overflow-y-auto"
-                        style={{ background: 'white', border: '1px solid var(--gold-light)', boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}>
-                        {cities.map(city => (
-                          <button key={city.Ref} type="button"
-                            className="block w-full text-left px-4 py-2 text-sm hover:bg-amber-50 transition-colors"
-                            style={{ fontFamily: 'Jost', borderBottom: '1px solid var(--gold-light)' }}
-                            onClick={() => {
-                              setForm(prev => ({ ...prev, cityRef: city.Ref, cityName: city.Description, citySearch: city.Description }));
-                              setShowCities(false);
-                            }}>
-                            {city.Description}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {form.cityName && (
-                      <p className="text-xs mt-1" style={{ color: 'var(--gold-dark)', fontFamily: 'Jost' }}>
-                        ✓ Обрано: {form.cityName}
-                      </p>
-                    )}
+              <Step n={2} title="Доставка Новою поштою">
+                <div className="field relative">
+                  <label className="label" htmlFor="co-city">Місто *</label>
+                  <div className="relative">
+                    <input
+                      id="co-city"
+                      type="text"
+                      required={!form.cityRef}
+                      autoComplete="off"
+                      placeholder="Почніть вводити назву міста..."
+                      value={form.citySearch}
+                      onChange={e => {
+                        setForm(prev => ({ ...prev, citySearch: e.target.value, cityRef: '', cityName: '', warehouseRef: '', warehouseName: '' }));
+                        setWarehouses([]);
+                      }}
+                      className="input pr-10"
+                    />
+                    <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-3" />
                   </div>
 
-                  {/* Warehouse */}
-                  {form.cityRef && (
-                    <div className="relative">
-                      <label className="block text-xs tracking-widest uppercase mb-2"
-                        style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                        Відділення / Поштомат *
-                      </label>
-                      
-                      {warehouseLoading ? (
-                        <p className="text-sm" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                          Завантаження відділень...
-                        </p>
-                      ) : (
-                        <div className="relative">
-                          <select
-                            required
-                            value={form.warehouseRef}
-                            onChange={e => {
-                              const w = warehouses.find(w => w.Ref === e.target.value);
-                              setForm(prev => ({ ...prev, warehouseRef: e.target.value, warehouseName: w?.Description || '' }));
-                            }}
-                            className="w-full px-4 py-3 text-sm outline-none appearance-none"
-                            style={{ border: '1px solid var(--gold-light)', background: 'var(--cream)', fontFamily: 'Jost' }}>
-                            <option value="">Оберіть відділення</option>
-                            {warehouses.map(w => (
-                              <option key={w.Ref} value={w.Ref}>
-                                {w.Description}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                            style={{ color: 'var(--stone)' }} />
-                        </div>
-                      )}
+                  {cityLoading && <p className="mt-1 text-xs text-ink-3">Пошук...</p>}
+
+                  {showCities && cities.length > 0 && !form.cityRef && (
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-line bg-white py-1 shadow-[var(--shadow-soft)]">
+                      {cities.map(city => (
+                        <button key={city.Ref} type="button"
+                          className="block w-full px-4 py-2.5 text-left text-sm hover:bg-mist"
+                          onClick={() => {
+                            setForm(prev => ({ ...prev, cityRef: city.Ref, cityName: city.Description, citySearch: city.Description }));
+                            setShowCities(false);
+                          }}>
+                          {city.Description}
+                        </button>
+                      ))}
                     </div>
+                  )}
+
+                  {form.cityName && (
+                    <p className="mt-1 text-xs font-semibold text-ok">✓ Обрано: {form.cityName}</p>
                   )}
                 </div>
 
-                {/* Comment */}
-                <div style={{ background: 'white', border: '1px solid var(--gold-light)' }} className="p-6">
-                  <label className="block text-xs tracking-widest uppercase mb-2"
-                    style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                    Коментар до замовлення
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Будь-які побажання щодо замовлення..."
-                    value={form.comment}
-                    onChange={e => setForm(prev => ({ ...prev, comment: e.target.value }))}
-                    className="w-full px-4 py-3 text-sm outline-none resize-none"
-                    style={{ border: '1px solid var(--gold-light)', background: 'var(--cream)', fontFamily: 'Jost' }}
-                  />
-                </div>
-              </div>
+                {form.cityRef && (
+                  <div className="field mt-4">
+                    <label className="label" htmlFor="co-wh">Відділення / Поштомат *</label>
+                    {warehouseLoading ? (
+                      <p className="text-sm text-ink-3">Завантаження відділень...</p>
+                    ) : (
+                      <select
+                        id="co-wh"
+                        required
+                        value={form.warehouseRef}
+                        onChange={e => {
+                          const w = warehouses.find(w => w.Ref === e.target.value);
+                          setForm(prev => ({ ...prev, warehouseRef: e.target.value, warehouseName: w?.Description || '' }));
+                        }}
+                        className="select">
+                        <option value="">Оберіть відділення</option>
+                        {warehouses.map(w => (
+                          <option key={w.Ref} value={w.Ref}>
+                            {w.Description}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {showWarehouses && !warehouseLoading && warehouses.length === 0 && (
+                      <p className="mt-1 text-xs text-ink-3">Відділень не знайдено — оберіть сусіднє місто або зателефонуйте нам: {SITE.phone}.</p>
+                    )}
+                  </div>
+                )}
+              </Step>
 
-              {/* Right: Order summary */}
-              <div className="space-y-6">
-                <div style={{ background: 'white', border: '1px solid var(--gold-light)' }} className="p-6 sticky top-24">
-                  <h2 className="text-xl mb-6" style={{ fontFamily: 'Cormorant Garamond' }}>Ваше замовлення</h2>
-                  
-                  <div className="space-y-3 mb-6">
-                    {items.map(item => (
-                      <div key={item.id} className="flex gap-3">
-                        <img src={item.image} alt={item.nameUa} className="w-14 h-14 object-cover flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm leading-tight" style={{ fontFamily: 'Cormorant Garamond', fontSize: '0.95rem' }}>
-                            {item.nameUa}
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                            {item.quantity} × {item.price.toLocaleString('uk-UA')} ₴
-                          </p>
-                        </div>
-                        <p className="text-sm" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--gold-dark)' }}>
-                          {(item.price * item.quantity).toLocaleString('uk-UA')} ₴
+              <Step n={3} title="Коментар до замовлення">
+                <label className="sr-only" htmlFor="co-comment">Коментар</label>
+                <textarea
+                  id="co-comment"
+                  rows={3}
+                  placeholder="Розмір, побажання до пакування, зручний час для дзвінка…"
+                  value={form.comment}
+                  onChange={e => setForm(prev => ({ ...prev, comment: e.target.value }))}
+                  className="textarea"
+                />
+              </Step>
+            </div>
+
+            <aside className="lg:sticky lg:top-[140px] lg:self-start">
+              <div className="rounded-2xl border border-line bg-white p-5 md:p-7">
+                <h2 className="font-display text-2xl font-semibold">Ваше замовлення</h2>
+                <ul className="mt-5 space-y-4">
+                  {items.map(item => (
+                    <li key={item.id} className="flex gap-3">
+                      <span className="relative h-16 w-16 flex-none overflow-hidden rounded-xl bg-[#f6f3ee]">
+                        <PhotoSlot src={item.image || null} alt={item.nameUa} sizes="64px" icon={categoryByKey(item.category)?.icon} label="" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-semibold leading-snug">{item.nameUa}</p>
+                        <p className="text-xs text-ink-3">
+                          {item.quantity} × {fmt(item.price)}{item.selectedSize ? ` · розмір ${item.selectedSize}` : ''}
                         </p>
                       </div>
-                    ))}
+                      <p className="whitespace-nowrap text-sm font-bold">{fmt(item.price * item.quantity)}</p>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-5 space-y-3 border-t border-line pt-5">
+                  <FreeShipBar total={total} />
+                  <div className="flex justify-between text-sm text-ink-2">
+                    <span>Доставка</span>
+                    <span className="font-semibold">{total >= SITE.freeShippingFrom ? 'Безкоштовно' : 'За тарифами НП'}</span>
                   </div>
-
-                  <div className="pt-4" style={{ borderTop: '1px solid var(--gold-light)' }}>
-                    <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                      <span>Доставка</span>
-                      <span>За тарифами НП</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'Jost', color: 'var(--stone)' }}>
-                        РАЗОМ
-                      </span>
-                      <span className="text-2xl" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--dark)' }}>
-                        {total.toLocaleString('uk-UA')} ₴
-                      </span>
-                    </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-bold uppercase tracking-[.14em] text-ink-3">Разом</span>
+                    <span className="text-3xl font-extrabold tracking-tight">{fmt(total)}</span>
                   </div>
+                </div>
 
-                  <button type="submit"
-                    disabled={loading}
-                    className="btn-gold w-full py-4 px-6 mt-6 disabled:opacity-50">
-                    {loading ? 'Обробка...' : '💳 Оплатити через LiqPay'}
-                  </button>
+                <button type="submit" disabled={loading} className="btn btn-gold btn-lg btn-block mt-6">
+                  <Lock size={17} /> {loading ? 'Обробка...' : 'Оплатити через LiqPay'}
+                </button>
 
-                  <div className="mt-4 text-center">
-                    <p className="text-xs" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                      Оплата захищена 🔒 SSL
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                      Visa / MasterCard / ПриватБанк
-                    </p>
+                <div className="mt-4 text-center text-xs text-ink-3">
+                  <p>Оплата захищена · дані картки вводяться на сторінці LiqPay</p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <PayBadge>VISA</PayBadge>
+                    <PayBadge>Mastercard</PayBadge>
+                    <PayBadge>LiqPay</PayBadge>
                   </div>
                 </div>
               </div>
-            </div>
-          </form>
-        </div>
+            </aside>
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,55 +1,112 @@
-'use client';
-import { ExtendedProduct, statusLabels } from '@/data/products';
-import { useCartStore } from '@/store/cartStore';
-import { ShoppingBag, Eye, X, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ShoppingBag, Ruler } from 'lucide-react';
+import type { ExtendedProduct } from '@/data/products';
+import type { Product } from '@/store/cartStore';
+import { badgeKeys, categoryByKey, STATUS } from '@/lib/taxonomy';
+import { money, metalLabel, discountPct, sizeOptions } from '@/lib/format';
+import PhotoSlot from './PhotoSlot';
+import { CardTools, AddToCart } from './ProductActions';
 
-const MAT_COLOR: Record<string, string> = { gold: '#d4af37', silver: '#9ea3ae', bijouterie: '#c4a882' };
-const MAT_LABEL: Record<string, string> = { gold: 'Золото', silver: 'Срібло', bijouterie: 'Біжутерія' };
+// Серверна картка (мінімум JS): інтерактивні лише кнопки ♡ ⇄ і «У кошик»
 
-export default function ProductCard({ product, index = 0 }: { product: ExtendedProduct; index?: number }) {
-  const { addItem } = useCartStore();
-  const [quickView, setQuickView] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const status = statusLabels[product.status];
+export function toCartProduct(p: ExtendedProduct): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    nameUa: p.nameUa,
+    price: p.price,
+    material: p.material,
+    category: p.category,
+    image: p.image,
+    description: p.description,
+    inStock: p.status !== 'sold',
+    weight: p.weight,
+    size: p.size,
+  };
+}
+
+export function Stickers({ p, className = '' }: { p: Pick<ExtendedProduct, 'badges' | 'price' | 'oldPrice'>; className?: string }) {
+  const keys = badgeKeys(p.badges);
+  const pct = discountPct(p);
+  if (!keys.length && !pct) return null;
   return (
-    <>
-      <div className="product-card" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-        <div className="img-wrap" style={{ paddingBottom: '120%', position: 'relative' }}>
-          <img src={product.image} alt={product.nameUa} className="primary" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-          {product.image2 && <img src={product.image2} alt="" className="secondary" />}
-          <div style={{ position: 'absolute', top: 10, left: 10 }}>
-            <span className="badge" style={{ background: 'rgba(26,26,26,0.75)', color: MAT_COLOR[product.material] }}>{MAT_LABEL[product.material]}</span>
+    <div className={className}>
+      {pct ? <span className="sticker sticker-sale">−{pct}%</span> : keys.includes('sale') ? <span className="sticker sticker-sale">Акція</span> : null}
+      {keys.includes('hit') && <span className="sticker sticker-hit">Хіт</span>}
+      {keys.includes('new') && <span className="sticker sticker-new">Новинка</span>}
+    </div>
+  );
+}
+
+export default function ProductCard({
+  p,
+  eager = false,
+  sizes = '(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw',
+}: {
+  p: ExtendedProduct;
+  eager?: boolean;
+  sizes?: string;
+}) {
+  const cat = categoryByKey(p.category);
+  const st = STATUS[p.status] ?? STATUS.in_stock;
+  const sold = p.status === 'sold';
+  const pct = discountPct(p);
+  const href = `/product/${encodeURIComponent(p.id)}`;
+  const cartItem = toCartProduct(p);
+  // Каблучки з кількома розмірами: спершу обрати розмір на сторінці товару
+  const pickSize = !sold && p.category === 'ring' && sizeOptions(p.size).length > 1;
+  const sizeHref = `${href}#size-picker`;
+
+  return (
+    <article className="pcard group">
+      <div className="pcard-media">
+        <PhotoSlot
+          src={p.image || null}
+          alt={p.nameUa}
+          sizes={sizes}
+          icon={cat?.icon ?? 'ring'}
+          eager={eager}
+          className={`img-a${p.image2 ? ' has-b' : ''}`}
+        />
+        {p.image && p.image2 ? <PhotoSlot src={p.image2} alt="" sizes={sizes} className="img-b" /> : null}
+        <Stickers p={p} className="pcard-stickers" />
+        <CardTools id={p.id} />
+        {pickSize ? (
+          <div className="pcard-cta">
+            <Link href={sizeHref} className="btn btn-ink btn-sm btn-block">
+              <Ruler size={15} /> Обрати розмір
+            </Link>
           </div>
-          {product.status === 'sold' && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,26,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: 'white', fontSize: '0.6rem', letterSpacing: '0.3em', textTransform: 'uppercase' }}>Продано</span>
-            </div>
-          )}
-          {product.status !== 'sold' && (
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', opacity: hovered ? 1 : 0, transition: 'all 0.28s ease' }}>
-              <button onClick={() => addItem(product)} className="btn-gold" style={{ flex: 1, justifyContent: 'center', borderRadius: 0, padding: '11px 8px' }}>
-                <ShoppingBag size={13} /> До кошика
-              </button>
-              <button onClick={() => setQuickView(true)} style={{ width: 44, background: 'var(--black)', border: 'none', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Eye size={15} />
-              </button>
-            </div>
-          )}
+        ) : (
+          <AddToCart product={cartItem} sold={sold} variant="bar" />
+        )}
+      </div>
+      <div className="pcard-body">
+        <div className="pcard-meta">
+          <span className={`dot dot-${st.tone}`} aria-hidden />
+          <span>{st.label}</span>
+          <span aria-hidden>·</span>
+          <span className="truncate">{metalLabel(p)}</span>
         </div>
-        <div style={{ padding: '14px 14px 18px' }}>
-          <div style={{ display: 'flex', gap: 2, marginBottom: 7 }}>
-            {[...Array(5)].map((_, i) => <Star key={i} size={9} fill="var(--gold)" color="var(--gold)" />)}
-          </div>
-          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 400, marginBottom: 5 }}>{product.nameUa}</h3>
-          <p style={{ fontSize: '0.68rem', color: 'var(--stone)', marginBottom: 10 }}>{product.description}</p>
-          <hr style={{ border: 'none', borderTop: '0.5px solid var(--mist)', marginBottom: 10 }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem' }}>{product.price.toLocaleString('uk-UA')} ₴</span>
-            <span className="badge" style={{ background: status.color + '18', color: status.color }}>{status.label}</span>
-          </div>
+        <h3 className="pcard-title">
+          <Link href={href}>{p.nameUa}</Link>
+        </h3>
+        <div className="pcard-price">
+          <span className={`price-now${pct ? ' sale' : ''}`}>{money(p.price)}</span>
+          {pct ? <span className="price-old">{money(p.oldPrice!)}</span> : null}
+          {pickSize ? (
+            <Link
+              href={sizeHref}
+              className="pcard-quick relative z-[2] ml-auto h-9 w-9 items-center justify-center rounded-full bg-ink text-white"
+              aria-label={`Обрати розмір: ${p.nameUa}`}
+            >
+              <ShoppingBag size={16} />
+            </Link>
+          ) : (
+            <AddToCart product={cartItem} sold={sold} variant="round" />
+          )}
         </div>
       </div>
-    </>
+    </article>
   );
 }

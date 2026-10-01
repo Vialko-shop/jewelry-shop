@@ -18,6 +18,8 @@ export interface ProductRow {
   size: string | null;
   badges: string[];
   sort_order: number;
+  /** optional column — exists only after `alter table products add column old_price integer` */
+  old_price?: number | null;
 }
 
 // DB row → shape the storefront/admin expect
@@ -26,10 +28,10 @@ export function rowToProduct(r: ProductRow): ExtendedProduct {
     id: r.id,
     name: r.name,
     nameUa: r.name_ua,
-    price: r.price,
+    price: Number(r.price) || 0,
     material: r.material,
     category: r.category,
-    description: r.description,
+    description: r.description ?? '',
     image: r.image ?? '', // empty → card shows the "Фото скоро" placeholder
     image2: r.image2 ?? undefined,
     image3: r.image3 ?? undefined,
@@ -38,6 +40,8 @@ export function rowToProduct(r: ProductRow): ExtendedProduct {
     size: r.size ?? undefined,
     status: r.status,
     badges: r.badges?.length ? r.badges : undefined,
+    oldPrice: r.old_price ? Number(r.old_price) : undefined,
+    sortOrder: r.sort_order,
   };
 }
 
@@ -51,6 +55,16 @@ export async function getProducts(): Promise<ExtendedProduct[]> {
   return (data as ProductRow[]).map(rowToProduct);
 }
 
+/** Admin: raw rows (to know which optional columns exist) */
+export async function getProductRows(): Promise<ProductRow[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data as ProductRow[];
+}
+
 // ── Admin: mom's edits ───────────────────────────────────────────────
 export async function updateProductPrice(id: string, price: number) {
   const { error } = await supabase.from('products').update({ price }).eq('id', id);
@@ -62,13 +76,41 @@ export async function updateProductImage(id: string, url: string) {
   if (error) throw error;
 }
 
+export type EditableFields = Partial<Omit<ProductRow, 'id'>>;
+
+export async function updateProduct(id: string, patch: EditableFields) {
+  const { data, error } = await supabase.from('products').update(patch).eq('id', id).select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('NO_ROWS_UPDATED');
+}
+
+export async function createProducts(rows: ProductRow[]) {
+  const clean = rows.map(({ old_price, ...rest }) => (old_price == null ? rest : { ...rest, old_price }));
+  const { error } = await supabase.from('products').insert(clean);
+  if (error) throw error;
+}
+
+export async function deleteProduct(id: string) {
+  const { data, error } = await supabase.from('products').delete().eq('id', id).select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('NO_ROWS_DELETED');
+}
+
+/** Видалити кілька товарів за id → кількість реально видалених */
+export async function deleteProducts(ids: string[]) {
+  if (!ids.length) return 0;
+  const { data, error } = await supabase.from('products').delete().in('id', ids).select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
+}
+
 // Upload a photo to storage → returns a public URL
 export async function uploadProductPhoto(file: File, productId: string): Promise<string> {
-  const ext = file.name.split('.').pop() || 'jpg';
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const path = `${productId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .upload(path, file, { upsert: true, cacheControl: '3600' });
+    .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type || undefined });
   if (error) throw error;
   const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -87,4 +129,20 @@ export async function signOut() {
 export async function getCurrentUser() {
   const { data } = await supabase.auth.getUser();
   return data.user;
+}
+
+/** Ask the storefront to drop its cache so mom's edits appear right away */
+export async function requestStorefrontRefresh(): Promise<boolean> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return false;
+    const res = await fetch('/api/revalidate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }

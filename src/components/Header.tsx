@@ -1,172 +1,180 @@
 'use client';
-import { useCartStore } from '@/store/cartStore';
-import { ShoppingBag, X, Menu, Phone } from 'lucide-react';
-import { useState, useEffect } from 'react';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Heart, ArrowLeftRight, ShoppingBag, Search, Menu, Phone, ChevronDown, LayoutGrid } from 'lucide-react';
+import type { LiteProduct } from '@/lib/catalog';
+import { useCartStore } from '@/store/cartStore';
+import { useWishlist, useCompare } from '@/store/listsStore';
+import { useUi } from '@/store/uiStore';
+import { useHydrated } from '@/lib/useHydrated';
+import { SITE } from '@/lib/site';
+import Logo from './Logo';
+import dynamic from 'next/dynamic';
+import { SearchInline } from './SearchBox';
+import { MegaPanel, NAV, type NavKey } from './MegaMenu';
 
-const NAV = [
-  { href: '#catalog', label: 'Каталог' },
-  { href: '#about',   label: 'Про нас' },
-  { href: 'tel:+380957775000', label: '+38 (095) 777-50-00', icon: true },
-];
+const SearchOverlay = dynamic(() => import('./SearchBox').then((m) => m.SearchOverlay), { ssr: false });
+const MobileMenu = dynamic(() => import('./MobileMenu'), { ssr: false });
 
-export default function Header() {
-  const { getTotalItems, toggleCart } = useCartStore();
+function Counter({ n, gold = false }: { n: number; gold?: boolean }) {
+  if (!n) return null;
+  return <span className={`count-badge${gold ? ' gold' : ''}`}>{n > 99 ? '99+' : n}</span>;
+}
+
+export default function Header({ items }: { items: LiteProduct[] }) {
+  const hydrated = useHydrated();
+  const pathname = usePathname();
+  const cartCount = useCartStore((s) => s.items.reduce((a, i) => a + i.quantity, 0));
+  const toggleCart = useCartStore((s) => s.toggleCart);
+  const wishCount = useWishlist((s) => s.ids.length);
+  const cmpCount = useCompare((s) => s.ids.length);
+  const panel = useUi((s) => s.panel);
+  const open = useUi((s) => s.open);
+  const close = useUi((s) => s.close);
+
+  const [active, setActive] = useState<NavKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const count = getTotalItems();
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Lock body scroll when menu is open
+  // close everything on navigation
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [menuOpen]);
+    setActive(null);
+    close();
+  }, [pathname, close]);
+
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setActive(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
+
+  const hoverOpen = useCallback((k: NavKey) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setActive(k), 90);
+  }, []);
+  const hoverClose = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setActive(null), 160);
+  }, []);
+  const keep = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  const navShown = NAV.filter((n) => n.kind !== 'badge' || items.some(n.match));
 
   return (
     <>
-      {/* Announcement bar */}
-      <div className="ann-bar">
-        <span>✦ &nbsp; Безкоштовна доставка від <strong>1500 ₴</strong> &nbsp;|&nbsp; Оплата частинами ПриватБанк &nbsp; ✦</span>
-      </div>
+      <header
+        className={`sticky top-0 z-[60] border-b bg-white/95 backdrop-blur-md transition-shadow ${
+          scrolled ? 'border-line shadow-[0_6px_24px_-18px_rgba(28,26,23,.45)]' : 'border-transparent'
+        }`}
+      >
+        <div className="wrap flex h-[62px] items-center gap-2 lg:h-[78px] lg:gap-6">
+          <button type="button" className="icon-btn -ml-2 lg:hidden" aria-label="Меню" onClick={() => open('menu')}>
+            <Menu size={22} />
+          </button>
 
-      {/* Main header */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 90,
-        background: scrolled ? 'rgba(253,252,240,0.88)' : 'var(--ivory)',
-        backdropFilter: scrolled ? 'blur(12px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
-        borderBottom: `0.5px solid ${scrolled ? 'var(--mist)' : 'transparent'}`,
-        transition: 'all 0.4s ease',
-        boxShadow: scrolled ? '0 2px 24px rgba(26,26,26,0.06)' : 'none',
-      }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="flex flex-1 justify-center lg:flex-none lg:justify-start">
+            <Logo />
+          </div>
 
-          {/* Desktop nav left */}
-          <nav style={{ display: 'flex', gap: 32, flex: 1 }} className="hidden md:flex">
-            <a href="#catalog" style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--stone)', fontWeight: 500, transition: 'color 0.2s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
-              Каталог
-            </a>
-            <a href="#about" style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--stone)', fontWeight: 500, transition: 'color 0.2s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
-              Про нас
-            </a>
-          </nav>
+          <button
+            type="button"
+            className={`btn btn-sm hidden gap-2 lg:inline-flex ${active === 'all' ? 'btn-ink' : 'btn-line'}`}
+            aria-expanded={active === 'all'}
+            aria-haspopup="true"
+            onClick={() => setActive((a) => (a === 'all' ? null : 'all'))}
+            onMouseEnter={() => hoverOpen('all')}
+            onMouseLeave={hoverClose}
+          >
+            <LayoutGrid size={16} /> Каталог
+          </button>
 
-          {/* Logo center */}
-          <Link href="/" style={{ textDecoration: 'none', textAlign: 'center', flex: '0 0 auto' }}>
-            <div style={{ fontSize: '0.5rem', letterSpacing: '0.55em', textTransform: 'uppercase', color: 'var(--stone)', fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
-              ✦ Luxury Jewelry ✦
-            </div>
-            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-serif)', letterSpacing: '0.18em', lineHeight: 1.1, fontWeight: 400 }}
-              className="gold-text">
-              VIALKO
-            </div>
-          </Link>
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <SearchInline items={items} />
+          </div>
 
-          {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, justifyContent: 'flex-end' }}>
-            {/* Phone desktop */}
-            <a href="tel:+380957775000" className="hidden md:flex" style={{ alignItems: 'center', gap: 6, fontSize: '0.62rem', letterSpacing: '0.1em', color: 'var(--stone)', transition: 'color 0.2s', textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--black)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--stone)')}>
-              <Phone size={12} />
-              095 777-50-00
-            </a>
+          <a href={SITE.phoneHref} className="hidden flex-col leading-tight xl:flex">
+            <span className="flex items-center gap-1.5 text-[15px] font-extrabold tracking-tight">
+              <Phone size={15} className="text-gold-deep" /> {SITE.phone}
+            </span>
+            <span className="text-[11px] text-ink-3">{SITE.hours}</span>
+          </a>
 
-            {/* Cart */}
-            <button onClick={toggleCart} style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--black)' }}>
-              <ShoppingBag size={20} strokeWidth={1.5} />
-              {count > 0 && (
-                <span style={{
-                  position: 'absolute', top: -4, right: -4,
-                  width: 17, height: 17,
-                  background: 'var(--gold)',
-                  borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.55rem', fontWeight: 600, color: 'var(--black)',
-                }}>
-                  {count}
-                </span>
-              )}
+          <div className="flex items-center">
+            <button type="button" className="icon-btn lg:hidden" aria-label="Пошук" onClick={() => open('search')}>
+              <Search size={21} />
             </button>
-
-            {/* Burger */}
-            <button className="md:hidden" onClick={() => setMenuOpen(true)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--black)' }}>
-              <Menu size={22} strokeWidth={1.5} />
+            <Link href="/compare" className="icon-btn hidden lg:inline-grid" aria-label={`Порівняння (${hydrated ? cmpCount : 0})`}>
+              <ArrowLeftRight size={20} strokeWidth={1.7} />
+              <Counter n={hydrated ? cmpCount : 0} />
+            </Link>
+            <Link href="/wishlist" className="icon-btn hidden lg:inline-grid" aria-label={`Обране (${hydrated ? wishCount : 0})`}>
+              <Heart size={21} strokeWidth={1.7} />
+              <Counter n={hydrated ? wishCount : 0} />
+            </Link>
+            <button type="button" className="icon-btn -mr-2 lg:mr-0" aria-label={`Кошик (${hydrated ? cartCount : 0})`} onClick={toggleCart}>
+              <ShoppingBag size={21} strokeWidth={1.7} />
+              <Counter n={hydrated ? cartCount : 0} gold />
             </button>
           </div>
         </div>
-      </header>
 
-      {/* Mobile menu overlay */}
-      {menuOpen && (
-        <>
-          <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}
-            style={{ animation: 'fadeIn 0.3s ease' }} />
-          <div className="mobile-menu" style={{ animation: 'slideIn 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
-            <style>{`
-              @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-              @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
-            `}</style>
+        <nav aria-label="Категорії" className="relative hidden border-t border-line lg:block" onMouseLeave={hoverClose}>
+          <ul className="wrap flex h-[46px] items-center gap-1">
+            {navShown.map((n, i) => (
+              <li key={n.slug} className={i === 6 || i === 8 ? 'ml-3 border-l border-line pl-3' : ''}>
+                <Link
+                  href={`/catalog/${n.slug}`}
+                  onMouseEnter={() => hoverOpen(n.slug)}
+                  onFocus={() => setActive(n.slug)}
+                  aria-expanded={active === n.slug}
+                  className={`relative flex h-[46px] items-center gap-1 px-3 text-[13.5px] font-semibold transition-colors ${
+                    active === n.slug ? 'text-ink' : n.kind === 'badge' && n.slug === 'aktsii' ? 'text-wine' : 'text-ink-2 hover:text-ink'
+                  }`}
+                >
+                  {n.label}
+                  {n.kind !== 'badge' && <ChevronDown size={14} className={`opacity-50 transition-transform ${active === n.slug ? 'rotate-180' : ''}`} />}
+                  <span className={`absolute inset-x-3 bottom-0 h-[2px] origin-left bg-gold transition-transform duration-300 ${active === n.slug ? 'scale-x-100' : 'scale-x-0'}`} />
+                </Link>
+              </li>
+            ))}
+          </ul>
 
-            {/* Close */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48 }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', letterSpacing: '0.15em', color: 'var(--gold)' }}>VIALKO</span>
-              <button onClick={() => setMenuOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
-                <X size={22} />
-              </button>
+          {active && active !== 'all' && (
+            <div className="absolute inset-x-0 top-full z-[65]" onMouseEnter={keep} onMouseLeave={hoverClose}>
+              <div className="wrap">
+                <div className="fade-up overflow-hidden rounded-b-2xl border border-t-0 border-line bg-white shadow-[var(--shadow-pop)]" style={{ animationDuration: '.25s' }}>
+                  <MegaPanel active={active} items={items} onPick={() => setActive(null)} />
+                </div>
+              </div>
             </div>
-
-            {/* Links */}
-            <nav style={{ flex: 1 }}>
-              {[
-                { href: '#catalog', label: 'Каталог' },
-                { href: '#about', label: 'Про нас' },
-              ].map((item, i) => (
-                <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                  style={{
-                    display: 'block',
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '2rem',
-                    fontWeight: 300,
-                    letterSpacing: '0.08em',
-                    color: 'rgba(255,255,255,0.85)',
-                    padding: '12px 0',
-                    borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-                    textDecoration: 'none',
-                    transition: 'color 0.2s',
-                    animationDelay: `${i * 0.06}s`,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.85)')}>
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-
-            {/* Bottom */}
-            <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.1)', paddingTop: 24 }}>
-              <a href="tel:+380957775000"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--gold)', textDecoration: 'none', fontSize: '0.8rem', letterSpacing: '0.1em' }}>
-                <Phone size={14} /> +38 (095) 777-50-00
-              </a>
+          )}
+        </nav>
+        {active === 'all' && (
+          <div className="absolute inset-x-0 top-[78px] z-[65] hidden lg:block" onMouseEnter={keep} onMouseLeave={hoverClose}>
+            <div className="wrap">
+              <div className="fade-up overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-pop)]" style={{ animationDuration: '.25s' }}>
+                <MegaPanel active="all" items={items} onPick={() => setActive(null)} />
+              </div>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </header>
+
+      {active && <div className="fixed inset-0 z-[55] hidden bg-night/20 lg:block" aria-hidden onClick={() => setActive(null)} />}
+      {panel === 'search' && <SearchOverlay items={items} onClose={close} />}
+      {panel === 'menu' && <MobileMenu open onClose={close} items={items} />}
     </>
   );
 }

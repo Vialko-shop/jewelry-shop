@@ -1,108 +1,125 @@
 'use client';
+
+import * as Dialog from '@radix-ui/react-dialog';
+import Link from 'next/link';
+import { X, Minus, Plus, Trash2, ShoppingBag, Truck, ArrowRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
-import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { useHydrated } from '@/lib/useHydrated';
+import { money, metalLabel, itemsWord } from '@/lib/format';
+import { categoryByKey } from '@/lib/taxonomy';
+import { SITE } from '@/lib/site';
+import PhotoSlot from './PhotoSlot';
+
+export function FreeShipBar({ total }: { total: number }) {
+  const left = Math.max(0, SITE.freeShippingFrom - total);
+  const pct = Math.min(100, (total / SITE.freeShippingFrom) * 100);
+  return (
+    <div className="rounded-xl bg-ivory p-3">
+      <p className="flex items-center gap-2 text-[13px] text-ink-2">
+        <Truck size={16} className="text-gold-deep" />
+        {left > 0 ? (
+          <span>
+            До безкоштовної доставки: <b className="text-ink">{money(left)}</b>
+          </span>
+        ) : (
+          <span className="font-semibold text-ok">Безкоштовна доставка вже ваша</span>
+        )}
+      </p>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand" aria-hidden>
+        <div className="h-full rounded-full bg-gold transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export default function Cart() {
-  const { items, isOpen, toggleCart, removeItem, updateQuantity, getTotalPrice } = useCartStore();
-
-  if (!isOpen) return null;
+  const hydrated = useHydrated();
+  const { items, isOpen, toggleCart, removeItem, updateQuantity } = useCartStore();
+  const list = hydrated ? items : [];
+  const total = list.reduce((s, i) => s + i.price * i.quantity, 0);
+  const count = list.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <>
-      {/* Overlay */}
-      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={toggleCart} />
-
-      {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full z-50 flex flex-col w-full max-w-md"
-        style={{ background: 'var(--cream)', boxShadow: '-20px 0 60px rgba(0,0,0,0.2)' }}>
-        
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5"
-          style={{ borderBottom: '1px solid var(--gold-light)' }}>
-          <div>
-            <h2 className="text-2xl" style={{ fontFamily: 'Cormorant Garamond' }}>Ваш кошик</h2>
-            <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-              {items.length} {items.length === 1 ? 'товар' : items.length < 5 ? 'товари' : 'товарів'}
-            </p>
+    <Dialog.Root open={hydrated && isOpen} onOpenChange={(o) => o !== isOpen && toggleCart()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="overlay" />
+        <Dialog.Content className="drawer right" aria-describedby={undefined}>
+          <div className="drawer-head">
+            <Dialog.Title className="drawer-title">
+              Кошик <span className="align-middle font-sans text-sm font-semibold text-ink-3">{count ? itemsWord(count) : ''}</span>
+            </Dialog.Title>
+            <Dialog.Close className="icon-btn" aria-label="Закрити кошик">
+              <X size={22} />
+            </Dialog.Close>
           </div>
-          <button onClick={toggleCart} className="p-2 hover:opacity-60 transition-opacity">
-            <X size={20} />
-          </button>
-        </div>
 
-        {/* Items */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {items.length === 0 ? (
-            <div className="text-center py-16">
-              <ShoppingBag size={40} className="mx-auto mb-4" style={{ color: 'var(--gold-light)' }} />
-              <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.2rem', color: 'var(--stone)' }}>
-                Кошик порожній
-              </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                Додайте прикраси до кошика
-              </p>
+          {list.length === 0 ? (
+            <div className="grid flex-1 place-items-center p-8 text-center">
+              <div>
+                <span className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full bg-ivory text-gold-deep">
+                  <ShoppingBag size={34} strokeWidth={1.4} />
+                </span>
+                <p className="font-display text-2xl font-semibold">Кошик порожній</p>
+                <p className="mt-2 text-sm text-ink-2">Оберіть прикрасу до душі — ми дбайливо запакуємо її.</p>
+                <Link href="/catalog" onClick={toggleCart} className="btn btn-ink mt-6">
+                  До каталогу <ArrowRight size={16} />
+                </Link>
+              </div>
             </div>
           ) : (
-            items.map(item => (
-              <div key={item.id} className="flex gap-3" style={{ borderBottom: '1px solid var(--gold-light)', paddingBottom: '1rem' }}>
-                <img src={item.image} alt={item.nameUa}
-                  className="w-20 h-20 object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm leading-tight mb-1" style={{ fontFamily: 'Cormorant Garamond', fontSize: '1rem' }}>
-                    {item.nameUa}
-                  </h4>
-                  <p className="text-xs mb-2" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-                    {item.price.toLocaleString('uk-UA')} ₴
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-6 h-6 flex items-center justify-center"
-                        style={{ border: '1px solid var(--gold-light)' }}>
-                        <Minus size={10} />
-                      </button>
-                      <span className="text-sm w-4 text-center" style={{ fontFamily: 'Jost' }}>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 flex items-center justify-center"
-                        style={{ border: '1px solid var(--gold-light)' }}>
-                        <Plus size={10} />
-                      </button>
+            <>
+              <ul className="flex-1 divide-y divide-line overflow-y-auto overscroll-contain px-5">
+                {list.map((it) => (
+                  <li key={it.id} className="flex gap-3 py-4">
+                    <Link href={`/product/${encodeURIComponent(it.id)}`} onClick={toggleCart} className="relative h-[84px] w-[84px] flex-none overflow-hidden rounded-xl bg-[#f6f3ee]">
+                      <PhotoSlot src={it.image || null} alt={it.nameUa} sizes="84px" icon={categoryByKey(it.category)?.icon} label="" />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/product/${encodeURIComponent(it.id)}`} onClick={toggleCart} className="line-clamp-2 text-[14px] font-semibold leading-snug hover:text-gold-deep">
+                        {it.nameUa}
+                      </Link>
+                      <p className="mt-0.5 text-xs text-ink-3">
+                        {metalLabel(it)}
+                        {it.selectedSize ? ` · розмір ${it.selectedSize}` : ''}
+                      </p>
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center rounded-full border border-line">
+                          <button type="button" className="grid h-8 w-8 place-items-center rounded-full hover:bg-mist" aria-label="Менше" onClick={() => updateQuantity(it.id, it.quantity - 1)}>
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-7 text-center text-sm font-bold" aria-live="polite">
+                            {it.quantity}
+                          </span>
+                          <button type="button" className="grid h-8 w-8 place-items-center rounded-full hover:bg-mist" aria-label="Більше" onClick={() => updateQuantity(it.id, it.quantity + 1)}>
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                        <span className="text-[15px] font-extrabold">{money(it.price * it.quantity)}</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-medium" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--gold-dark)' }}>
-                      {(item.price * item.quantity).toLocaleString('uk-UA')} ₴
-                    </span>
-                    <button onClick={() => removeItem(item.id)} className="p-1 hover:opacity-60 transition-opacity">
-                      <Trash2 size={14} style={{ color: 'var(--stone)' }} />
+                    <button type="button" className="self-start p-1 text-ink-3 hover:text-wine" aria-label={`Видалити «${it.nameUa}»`} onClick={() => removeItem(it.id)}>
+                      <Trash2 size={16} />
                     </button>
-                  </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-4 border-t border-line px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
+                <FreeShipBar total={total} />
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-semibold text-ink-2">Разом</span>
+                  <span className="text-2xl font-extrabold tracking-tight">{money(total)}</span>
                 </div>
+                <Link href="/checkout" onClick={toggleCart} className="btn btn-gold btn-lg btn-block">
+                  Оформити замовлення <ArrowRight size={17} />
+                </Link>
+                <button type="button" className="btn btn-ghost btn-sm btn-block" onClick={toggleCart}>
+                  Продовжити покупки
+                </button>
               </div>
-            ))
+            </>
           )}
-        </div>
-
-        {/* Footer */}
-        {items.length > 0 && (
-          <div className="px-6 py-5" style={{ borderTop: '1px solid var(--gold-light)' }}>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'Jost', color: 'var(--stone)' }}>
-                Разом
-              </span>
-              <span className="text-2xl" style={{ fontFamily: 'Cormorant Garamond', color: 'var(--dark)' }}>
-                {getTotalPrice().toLocaleString('uk-UA')} ₴
-              </span>
-            </div>
-            <a href="/checkout"
-              className="btn-gold block w-full text-center py-4 px-6"
-              onClick={toggleCart}>
-              Оформити замовлення
-            </a>
-            <p className="text-center text-xs mt-3" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-              🚚 Доставка Новою Поштою по всій Україні
-            </p>
-          </div>
-        )}
-      </div>
-    </>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

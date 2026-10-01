@@ -1,19 +1,15 @@
+import type { Metadata } from 'next';
 import Storefront from '@/components/Storefront';
-import { isSupabaseConfigured } from '@/lib/supabase';
-import { getProducts } from '@/lib/products';
-import { products as fallbackProducts } from '@/data/products';
+import { getCatalog } from '@/lib/catalog';
 
-export const dynamic = 'force-dynamic';
+// ISR: сторінка статична, оновлюється кожні 60 с і одразу після змін в адмінці
+export const revalidate = 60;
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 export default async function Home() {
-  let items = fallbackProducts;
-  if (isSupabaseConfigured) {
-    try {
-      const data = await getProducts();
-      if (data && data.length) items = data;
-    } catch {
-      /* on any error, show the static catalog */
-    }
-  }
-  return <Storefront initialProducts={items} />;
+  const products = await getCatalog();
+  return <Storefront products={products} />;
 }

@@ -1,638 +1,419 @@
-'use client';
-
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Link from 'next/link';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import type { ExtendedProduct } from '@/data/products';
-import { statusLabels } from '@/data/products';
-import { useCartStore } from '@/store/cartStore';
-import Ic from '@/components/Icons';
-import PhotoSlot from '@/components/PhotoSlot';
+import { CATEGORIES, MATERIALS, PRICE_BANDS, type IconName } from '@/lib/taxonomy';
+import { withBadge } from '@/lib/catalog';
+import { money, plural } from '@/lib/format';
+import { ABOUT_SEO, ARTICLES, FAQ } from '@/data/content';
+import HeroSlider, { type HeroSlide } from './home/HeroSlider';
+import ProductTabs from './home/ProductTabs';
+import Carousel from './Carousel';
+import ProductCard from './ProductCard';
+import Partners from './Partners';
+import PhotoSlot from './PhotoSlot';
+import { BENEFITS } from './Footer';
+import { CatIcon } from './Icons';
+import { ldJson } from '@/lib/jsonld';
 
-/* ============================ static content (from the design) ============================ */
-type Cat = { id: string; name: string; glyph: string; count: number; blurb: string };
+const firstImage = (list: ExtendedProduct[]) => list.find((p) => p.image)?.image ?? '';
+const count = (n: number) => `${n} ${plural(n, 'виріб', 'вироби', 'виробів')}`;
 
-const CATEGORIES: Cat[] = [
-  { id: 'kabluchky', name: 'Каблучки', glyph: '◍', count: 64, blurb: 'Каблучки з золота та срібла' },
-  { id: 'serezhky', name: 'Сережки', glyph: '✶', count: 88, blurb: 'Пусети, підвіски, доріжки' },
-  { id: 'braslety', name: 'Браслети', glyph: '⌒', count: 47, blurb: 'Ланцюжки та тенісні браслети' },
-  { id: 'pidviski', name: 'Підвіски', glyph: '✦', count: 53, blurb: 'Кулони, хрестики, медальйони' },
-  { id: 'komplekty', name: 'Комплекти', glyph: '❖', count: 29, blurb: 'Сережки + каблучка в наборі' },
-];
-
-const SUBGROUPS: Record<string, string[]> = {
-  kabluchky: ['Заручальні', 'Класичні', 'З каменем', 'Доріжки', 'Печатки', 'Тонкі'],
-  serezhky: ['Пусети', 'Підвіски', 'Кільця', 'Доріжки', 'Англійський замок', 'Каффи'],
-  braslety: ['Ланцюжки', 'Тенісні', 'Глідерні', 'Шкіряні', 'Жорсткі', 'З підвісками'],
-  pidviski: ['Кулони', 'Хрестики', 'Медальйони', 'З каменем', 'Іконки', 'Знаки зодіаку'],
-  komplekty: ['Класика', 'Весільні', 'Вечірні', 'З перлами', 'З фіанітами', 'Срібні'],
-};
-
-const MATERIALS = [
-  { id: 'all', name: 'Всі' },
-  { id: 'gold', name: 'Золото' },
-  { id: 'silver', name: 'Срібло' },
-  { id: 'bijouterie', name: 'Біжутерія' },
-];
-
-const STATS = [
-  { num: '500+', label: 'Задоволених клієнтів' },
-  { num: '5+', label: 'Років досвіду' },
-  { num: '100%', label: 'Оригінал' },
-];
-
-const TRUST = [
-  { icon: '🔐', title: 'Безпечна оплата', sub: 'LiqPay / ПриватБанк' },
-  { icon: '🚚', title: 'Нова Пошта', sub: 'По всій Україні' },
-  { icon: '💎', title: '100% Оригінал', sub: 'Сертифікати якості' },
-  { icon: '🔄', title: 'Обмін 14 днів', sub: 'Гарантія повернення' },
-];
-
-const PARTNERS = ['Столична Ювелірна Фабрика', 'УКР Золото', 'Золотий Стандарт'];
-
-const FREE_SHIP = 1500;
-const fmt = (n: number) => n.toLocaleString('uk-UA') + ' ₴';
-const matName = (m: string) => (({ gold: 'Золото', silver: 'Срібло', bijouterie: 'Біжутерія' } as Record<string, string>)[m] || m);
-const probe = (m: string) => (m === 'gold' ? ' 585' : m === 'silver' ? ' 925' : '');
-const PHONE = '095 777-50-00';
-const TEL = '+380957775000';
-
-/* ============================ scroll reveal ============================ */
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll('.reveal:not(.in)');
-    if (!('IntersectionObserver' in window)) {
-      els.forEach((e) => e.classList.add('in'));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((en) => {
-          if (en.isIntersecting) {
-            en.target.classList.add('in');
-            io.unobserve(en.target);
-          }
-        });
-      },
-      { threshold: 0.14, rootMargin: '0px 0px -8% 0px' }
-    );
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
-  }, []);
-}
-
-/* ============================ HEADER ============================ */
-function Header({ onCatalog, onCart, cartCount, wishCount, onMenu, scrolled }: {
-  onCatalog: () => void; onCart: () => void; cartCount: number; wishCount: number; onMenu: () => void; scrolled: boolean;
-}) {
+export function Benefits() {
   return (
-    <header className={`header${scrolled ? ' scrolled' : ''}`}>
-      <div className="wrap">
-        <div className="bar">
-          <div className="left">
-            <button className="cat-trigger" onClick={onCatalog}>
-              <span className="burger"><i /><i /><i /></span>
-              <span className="lbl">Каталог</span>
-            </button>
-            <button className="search-mini" type="button"><Ic.search /> Пошук прикрас…</button>
-          </div>
-          <a href="#top" className="logo" aria-label="VIALKO">
-            <span className="mark">VIALKO</span>
-            <span className="sub">Luxury Jewelry</span>
-          </a>
-          <div className="right">
-            <a className="header-phone" href={`tel:${TEL}`}>
-              <small>Дзвоніть щодня</small>
-              <b>{PHONE}</b>
-            </a>
-            <button className="icon-btn" title="Кабінет" type="button"><Ic.user /></button>
-            <button className="icon-btn" title="Бажане" type="button">
-              <Ic.heart />
-              {wishCount > 0 && <span className="badge">{wishCount}</span>}
-            </button>
-            <button className="icon-btn" title="Кошик" type="button" onClick={onCart}>
-              <Ic.bag />
-              {cartCount > 0 && <span className="badge">{cartCount}</span>}
-            </button>
-            <button className="icon-btn menu-btn" title="Меню" type="button" onClick={onMenu}><Ic.menu /></button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-/* ============================ HERO ============================ */
-function Hero() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const bg = ref.current;
-    if (!bg) return;
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (y < window.innerHeight) bg.style.transform = `translateY(${y * 0.28}px) scale(1.04)`;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf); };
-  }, []);
-  return (
-    <section className="hero" id="top">
-      <div className="hero-bg" ref={ref}>
-        <PhotoSlot label="hero" />
-      </div>
-      <div className="wrap">
-        <div className="hero-inner">
-          <span className="eyebrow">Авторські прикраси</span>
-          <h1 className="h-display">
-            <span className="ln"><span>Краса у</span></span>
-            <span className="ln"><span className="serif-italic">кожній деталі</span></span>
-          </h1>
-          <div className="diamond">◆</div>
-          <p className="lead">Золото 585, срібло 925 та вишукана біжутерія ручної роботи. Доставка по всій Україні Новою Поштою.</p>
-          <div className="cta-row">
-            <a href="#catalog" className="btn btn-gold">Переглянути колекцію <Ic.arrow /></a>
-            <a href={`tel:${TEL}`} className="btn btn-ghost">Зателефонувати</a>
-          </div>
-          <div className="hero-stats">
-            {STATS.map((s) => (
-              <div className="st" key={s.label}><b>{s.num}</b><span>{s.label.split(' ')[0]}</span></div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="hero-scroll">Гортайте<span className="ln" /></div>
+    <section aria-label="Наші переваги" className="wrap pt-6">
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {BENEFITS.map(({ icon: I, title, text }) => (
+          <li key={title} className="flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3.5">
+            <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-gold-soft text-gold-deep">
+              <I size={19} strokeWidth={1.7} />
+            </span>
+            <span className="min-w-0">
+              <b className="block text-[13.5px] leading-tight">{title}</b>
+              <span className="hidden text-[12px] leading-snug text-ink-3 sm:block">{text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
 
-/* ============================ CATEGORIES ============================ */
-function CategoryCard({ cat, delay, onOpen }: { cat: Cat; delay: number; onOpen: (id: string) => void }) {
+function QuickCategories({ all }: { all: ExtendedProduct[] }) {
+  const tiles: { href: string; label: string; icon: IconName; list: ExtendedProduct[] }[] = [
+    ...CATEGORIES.map((c) => ({ href: `/catalog/${c.slug}`, label: c.name, icon: c.icon, list: all.filter((p) => p.category === c.key) })),
+    { href: '/catalog/biju', label: 'Біжутерія', icon: 'biju', list: all.filter((p) => p.material === 'bijouterie') },
+  ];
   return (
-    <div className="cat-card reveal" data-d={delay} onClick={() => onOpen(cat.id)}>
-      <PhotoSlot label={cat.name} />
-      <div className="veil" />
-      <span className="glyph">{cat.glyph}</span>
-      <div className="body">
-        <h3>{cat.name}</h3>
-        <div className="meta">{cat.count} виробів</div>
-        <span className="go">Перейти <Ic.arrow /></span>
-      </div>
-    </div>
-  );
-}
-
-function Categories({ onOpen }: { onOpen: (id: string) => void }) {
-  return (
-    <section className="section wrap" id="categories">
+    <section className="wrap pt-12 md:pt-16" aria-labelledby="qc-title">
       <div className="section-head">
-        <span className="eyebrow reveal">Обирайте за категорією</span>
-        <h2 className="h-section reveal" data-d="1">Наша колекція</h2>
-        <p className="sub reveal" data-d="2">Від делікатних сережок до заручальних каблучок — кожна прикраса створена з любов&apos;ю до деталей.</p>
+        <div>
+          <span className="eyebrow">Каталог</span>
+          <h2 id="qc-title" className="section-title mt-2">
+            Популярні категорії
+          </h2>
+        </div>
+        <Link href="/catalog" className="link-more">
+          Увесь каталог <ArrowRight size={15} />
+        </Link>
       </div>
-      <div className="cat-grid">
-        {CATEGORIES.map((c, i) => (
-          <CategoryCard key={c.id} cat={c} delay={(i % 5) + 1} onOpen={onOpen} />
-        ))}
+      <ul className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-6 md:gap-6 md:overflow-visible md:px-0">
+        {tiles.map((t) => {
+          const img = firstImage(t.list);
+          return (
+            <li key={t.href} className="w-[112px] flex-none md:w-auto">
+              <Link href={t.href} className="group block text-center">
+                <span className="relative mx-auto block aspect-square w-full overflow-hidden rounded-full border border-line bg-[radial-gradient(circle_at_50%_35%,#fff,#f1ebe2)] transition duration-300 group-hover:border-gold group-hover:shadow-[var(--shadow-soft)]">
+                  {img ? (
+                    <PhotoSlot src={img} alt="" sizes="(max-width: 768px) 112px, 180px" className="p-3 transition-transform duration-500 group-hover:scale-105" />
+                  ) : (
+                    <span className="absolute inset-0 grid place-items-center text-gold-deep">
+                      <CatIcon name={t.icon} size={56} strokeWidth={1.2} />
+                    </span>
+                  )}
+                </span>
+                <span className="mt-3 block text-[14px] font-bold">{t.label}</span>
+                <span className="block text-[12px] text-ink-3">{count(t.list.length)}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function PromoDuo({ all }: { all: ExtendedProduct[] }) {
+  const cards = [
+    { slug: 'sriblo', eyebrow: 'Срібло 925', title: 'Легкість на щодень', text: 'Каблучки, сережки й браслети зі срібла', key: 'silver' as const, bg: 'linear-gradient(135deg,#f4f5f7 0%,#e6e8ec 100%)' },
+    { slug: 'zoloto', eyebrow: 'Золото 585', title: 'Класика, що залишається', text: 'Прикраси із жовтого та рожевого золота', key: 'gold' as const, bg: 'linear-gradient(135deg,#faf3e6 0%,#efdfc2 100%)' },
+  ];
+  return (
+    <section className="wrap py-4 md:py-6" aria-label="Добірки за металом">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+        {cards.map((c) => {
+          const list = all.filter((p) => p.material === c.key);
+          const img = firstImage(list);
+          return (
+            <Link key={c.slug} href={`/catalog/${c.slug}`} className="group relative grid min-h-[230px] grid-cols-[1.1fr_1fr] overflow-hidden rounded-[22px] md:min-h-[280px]" style={{ background: c.bg }}>
+              <div className="relative z-[1] flex flex-col justify-center gap-2 p-6 md:p-9">
+                <span className="eyebrow">{c.eyebrow}</span>
+                <h3 className="display text-[30px] md:text-[40px]">{c.title}</h3>
+                <p className="text-[13.5px] text-ink-2">{c.text}</p>
+                <span className="mt-2 inline-flex items-center gap-2 text-sm font-bold">
+                  {count(list.length)} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                </span>
+              </div>
+              <div className="relative">
+                {img ? (
+                  <PhotoSlot src={img} alt="" sizes="(max-width: 768px) 45vw, 25vw" className="p-4 transition-transform duration-700 group-hover:scale-[1.06]" />
+                ) : (
+                  <span className="absolute inset-0 grid place-items-center text-gold-deep">
+                    <CatIcon name={c.key} size={90} strokeWidth={1} />
+                  </span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-/* ============================ PRODUCT CARD ============================ */
-function ProductCard({ p, delay, onAdd, onQuick, wished, onWish }: {
-  p: ExtendedProduct; delay: number; onAdd: (p: ExtendedProduct) => void; onQuick: (p: ExtendedProduct) => void;
-  wished: boolean; onWish: (id: string) => void;
-}) {
-  const badge = p.badges?.[0];
-  const stock = statusLabels[p.status] ?? statusLabels.in_stock;
+function CatalogDirectory({ all }: { all: ExtendedProduct[] }) {
   return (
-    <article className="prod-card reveal" data-d={delay}>
-      <div className="prod-media">
-        <PhotoSlot className="img-a" src={p.image || null} alt={p.nameUa} label={p.nameUa} />
-        <PhotoSlot className="img-b" src={p.image2 || p.image || null} alt={p.nameUa} label="ракурс 2" />
-        {badge && <span className={`prod-tag${badge === 'Знижка' || badge === 'Sale' ? ' sale' : ''}`}>{badge}</span>}
-        <span className="prod-mat">{matName(p.material)}</span>
-        <div className="prod-actions">
-          <button className="qa" title="Швидкий перегляд" type="button" onClick={() => onQuick(p)}><Ic.eye /></button>
-          <button className="qa" title="У бажане" type="button" onClick={() => onWish(p.id)}>{wished ? <Ic.heartFill /> : <Ic.heart />}</button>
-        </div>
-        <div className="prod-cart-bar">
-          <button className="btn btn-gold btn-sm" style={{ width: '100%' }} type="button" onClick={() => onAdd(p)}>До кошика</button>
-        </div>
-      </div>
-      <div className="prod-info">
-        <h3>{p.nameUa}</h3>
-        <div className={`stock${p.status === 'sold' ? ' out' : ''}`}>{stock.label}</div>
-        <div className="price">
-          <span className="now">{fmt(p.price)}</span>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-/* ============================ CATALOG ============================ */
-function Catalog({ products, onAdd, onQuick, wishlist, onWish }: {
-  products: ExtendedProduct[]; onAdd: (p: ExtendedProduct) => void; onQuick: (p: ExtendedProduct) => void;
-  wishlist: Set<string>; onWish: (id: string) => void;
-}) {
-  const [mat, setMat] = useState('all');
-  const [sort, setSort] = useState('pop');
-  const list = useMemo(() => {
-    let r = products.filter((p) => mat === 'all' || p.material === mat);
-    if (sort === 'asc') r = [...r].sort((a, b) => a.price - b.price);
-    if (sort === 'desc') r = [...r].sort((a, b) => b.price - a.price);
-    return r;
-  }, [products, mat, sort]);
-  return (
-    <section className="section wrap" id="catalog">
+    <section className="wrap py-12 md:py-16" aria-labelledby="dir-title">
       <div className="section-head">
-        <span className="eyebrow reveal">Наша колекція</span>
-        <h2 className="h-section reveal" data-d="1">Каталог прикрас</h2>
-      </div>
-      <div className="catalog-controls reveal">
-        <div className="filter-pills">
-          {MATERIALS.map((m) => (
-            <button key={m.id} className={`pill${mat === m.id ? ' active' : ''}`} type="button" onClick={() => setMat(m.id)}>{m.name}</button>
-          ))}
-        </div>
-        <div className="sort-select">
-          Сортування
-          <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="pop">Популярні</option>
-            <option value="asc">Ціна ↑</option>
-            <option value="desc">Ціна ↓</option>
-          </select>
+        <div>
+          <span className="eyebrow">Навігація</span>
+          <h2 id="dir-title" className="section-title mt-2">
+            Каталог прикрас VIALKO
+          </h2>
         </div>
       </div>
-      {list.length === 0 ? (
-        <div className="cat-loading">У цій категорії поки немає товарів.</div>
-      ) : (
-        <div className="prod-grid">
-          {list.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={(i % 4) + 1} onAdd={onAdd} onQuick={onQuick} wished={wishlist.has(p.id)} onWish={onWish} />
-          ))}
-        </div>
-      )}
-      <div className="reveal" style={{ textAlign: 'center', marginTop: '54px' }}>
-        <a className="btn btn-ghost" href="#catalog">Показати всі прикраси <Ic.arrow /></a>
-      </div>
-    </section>
-  );
-}
-
-/* ============================ ABOUT / TRUST / PARTNERS / FOOTER ============================ */
-function About() {
-  return (
-    <section className="section wrap" id="about">
-      <div className="about">
-        <div className="about-media reveal">
-          <PhotoSlot label="майстерня" />
-          <div className="frame" />
-        </div>
-        <div className="about-copy">
-          <span className="eyebrow reveal">Про нас</span>
-          <h2 className="h-section reveal" data-d="1" style={{ marginTop: '18px' }}>Прикраси <span className="serif-italic">зі серця</span></h2>
-          <p className="reveal" data-d="2">Кожна прикраса VIALKO — це авторська робота з любов&apos;ю до деталей. Ми працюємо із золотом 585 проби, срібом 925, натуральними перлами та кристалами найвищої якості.</p>
-          <p className="reveal" data-d="2">Доставляємо по всій Україні Новою Поштою. Оплата зручним способом — карткою або накладеним платежем, доступна оплата частинами від ПриватБанку.</p>
-          <div className="about-mini reveal" data-d="3">
-            <div className="m"><b>585</b><span>проба золота</span></div>
-            <div className="m"><b>925</b><span>проба срібла</span></div>
-            <div className="m"><b>14 днів</b><span>на обмін</span></div>
-          </div>
-          <div className="sign reveal" data-d="3">— майстер VIALKO</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Trust() {
-  return (
-    <section className="trust">
-      <div className="wrap">
-        {TRUST.map((t) => (
-          <div className="t" key={t.title}>
-            <span className="ic">{t.icon}</span>
-            <div><b>{t.title}</b><span>{t.sub}</span></div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Partners() {
-  return (
-    <section className="section wrap partners">
-      <span className="eyebrow solo reveal">Нам довіряють</span>
-      <div className="rule reveal" data-d="1" style={{ margin: '22px 0 0' }}>◆</div>
-      <div className="row reveal" data-d="2">
-        {PARTNERS.map((p) => <span className="p" key={p}>{p}</span>)}
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="footer">
-      <div className="wrap">
-        <div className="top">
-          <div className="brand">
-            <div className="mark">VIALKO</div>
-            <div className="sub">✦ Luxury Jewelry ✦</div>
-            <p>Авторські прикраси з золота, срібла та вишукана біжутерія. Краса у кожній деталі.</p>
-          </div>
-          <div>
-            <h4>Каталог</h4>
-            <ul>{CATEGORIES.map((c) => <li key={c.id}><a href="#categories">{c.name}</a></li>)}</ul>
-          </div>
-          <div>
-            <h4>Інформація</h4>
-            <ul>
-              <li><a href="#about">Про нас</a></li>
-              <li><a href="#">Доставка та оплата</a></li>
-              <li><a href="#">Обмін і повернення</a></li>
-              <li><a href="#">Гарантія</a></li>
-              <li><a href="#">Контакти</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Контакти</h4>
-            <ul>
-              <li><a href={`tel:${TEL}`}>+38 (095) 777-50-00</a></li>
-              <li>info@vialko.com.ua</li>
-              <li>Доставка Новою Поштою<br />по всій Україні</li>
-            </ul>
-          </div>
-        </div>
-        <div className="pay">
-          <span>© 2025 VIALKO. Всі права захищені.</span>
-          <div className="cards"><span>Visa</span><span>Mastercard</span><span>LiqPay</span><span>ПриватБанк</span></div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-/* ============================ CATALOG PANEL ============================ */
-function CatalogPanel({ open, onClose, activeCat, setActiveCat, onJumpToCatalog }: {
-  open: boolean; onClose: () => void; activeCat: string; setActiveCat: (id: string) => void; onJumpToCatalog: () => void;
-}) {
-  const cat = CATEGORIES.find((c) => c.id === activeCat) || CATEGORIES[0];
-  const subs = SUBGROUPS[cat.id] || [];
-  const goldN = Math.round(cat.count * 0.58);
-  const silverN = cat.count - goldN;
-  const filters = ['Метал', 'Проба', 'Вставка', 'Колір металу', 'Для кого', 'Ціна'];
-  return (
-    <aside className={`catalog-panel${open ? ' open' : ''}`} aria-hidden={!open}>
-      <div className="cp-rail">
-        <div className="cp-logo">
-          <div className="mark">VIALKO</div>
-          <div className="sub">Каталог товарів</div>
-        </div>
-        {CATEGORIES.map((c) => (
-          <button key={c.id} className={`cp-cat${c.id === activeCat ? ' active' : ''}`} type="button" onClick={() => setActiveCat(c.id)}>
-            <span className="cg">{c.glyph}</span>
-            {c.name}
-            <span className="cnt">{c.count}</span>
-          </button>
-        ))}
-      </div>
-      <div className="cp-main">
-        <button className="icon-btn cp-close" type="button" onClick={onClose}><Ic.close /></button>
-        <div className="cp-top">
-          <h2>{cat.name}</h2>
-          <div className="cp-tabs">
-            <a href="#catalog" onClick={onClose}>Комплекти</a>
-            <a href="#catalog" onClick={onClose}>Колекція</a>
-            <a href="#catalog" onClick={onClose}>Всі {cat.name.toLowerCase()}</a>
-          </div>
-        </div>
-        <div className="cp-counts">
-          <div className="cc gold"><b>{goldN}</b><span>виробів · Золото 585</span></div>
-          <div className="cc silver"><b>{silverN}</b><span>виробів · Срібло 925</span></div>
-        </div>
-        <div className="cp-sub-grid">
-          {subs.map((s) => (
-            <button className="cp-sub" key={s} type="button" onClick={() => { onClose(); onJumpToCatalog(); }}>
-              <span className="sg-ic">{cat.glyph}</span>
-              <b>{s}</b>
-            </button>
-          ))}
-        </div>
-        <div className="cp-filters">
-          {filters.map((f) => (
-            <div className="cp-frow" key={f}>
-              <span className="pls">+</span>
-              <span className="lbl">{f}</span>
-              <span className="all">ВСІ</span>
+      <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        {CATEGORIES.map((c) => {
+          const list = all.filter((p) => p.category === c.key);
+          return (
+            <div key={c.key} className="flex gap-4">
+              <span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-ivory text-gold-deep">
+                <CatIcon name={c.icon} size={28} />
+              </span>
+              <div>
+                <Link href={`/catalog/${c.slug}`} className="text-[16px] font-bold hover:text-gold-deep">
+                  {c.name} <span className="text-xs font-medium text-ink-3">{list.length}</span>
+                </Link>
+                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13.5px] text-ink-2">
+                  {MATERIALS.map((m) =>
+                    list.some((p) => p.material === m.key) ? (
+                      <li key={m.key}>
+                        <Link href={`/catalog/${c.slug}?metal=${m.key}`} className="hover:text-ink">
+                          {m.name}
+                        </Link>
+                      </li>
+                    ) : null,
+                  )}
+                  {PRICE_BANDS.slice(0, 2).map((b) =>
+                    list.some((p) => p.price >= b.min && p.price <= b.max) ? (
+                      <li key={b.id}>
+                        <Link href={`/catalog/${c.slug}?price=${b.id}`} className="hover:text-ink">
+                          {b.label}
+                        </Link>
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
+              </div>
             </div>
-          ))}
+          );
+        })}
+        <div className="flex gap-4">
+          <span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-ivory text-gold-deep">
+            <CatIcon name="biju" size={28} />
+          </span>
+          <div>
+            <Link href="/catalog/biju" className="text-[16px] font-bold hover:text-gold-deep">
+              Біжутерія <span className="text-xs font-medium text-ink-3">{all.filter((p) => p.material === 'bijouterie').length}</span>
+            </Link>
+            <p className="mt-2 text-[13.5px] text-ink-2">Перли, кристали та позолочені сплави — яскраві акценти за доступною ціною.</p>
+          </div>
         </div>
       </div>
-    </aside>
+    </section>
   );
 }
 
-/* ============================ CART DRAWER (wired to Zustand store) ============================ */
-function CartDrawer({ open, onClose, items, onQty, onRemove }: {
-  open: boolean; onClose: () => void;
-  items: { id: string; nameUa: string; material: string; price: number; quantity: number; image: string }[];
-  onQty: (id: string, q: number) => void; onRemove: (id: string) => void;
-}) {
-  const total = items.reduce((s, it) => s + it.price * it.quantity, 0);
-  const count = items.reduce((s, it) => s + it.quantity, 0);
-  const left = Math.max(0, FREE_SHIP - total);
-  const pct = Math.min(100, (total / FREE_SHIP) * 100);
+export function AboutSeo() {
   return (
-    <aside className={`cart-drawer${open ? ' open' : ''}`} aria-hidden={!open}>
-      <div className="cart-head">
-        <h3>Кошик <span className="n">{count} шт</span></h3>
-        <button className="icon-btn" type="button" onClick={onClose}><Ic.close /></button>
-      </div>
-      {items.length === 0 ? (
-        <div className="cart-empty">
-          <span className="big">◆</span>
-          <p>Ваш кошик порожній.<br />Оберіть прикрасу до душі.</p>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>До каталогу</button>
-        </div>
-      ) : (
-        <>
-          <div className="cart-items">
-            {items.map((it) => (
-              <div className="cart-row" key={it.id}>
-                <PhotoSlot src={it.image || null} alt={it.nameUa} label=" " style={{ borderRadius: 10 }} />
-                <div>
-                  <div className="nm">{it.nameUa}</div>
-                  <div className="mt">{matName(it.material)}</div>
-                  <div className="qty">
-                    <button type="button" onClick={() => onQty(it.id, it.quantity - 1)}>−</button>
-                    <span>{it.quantity}</span>
-                    <button type="button" onClick={() => onQty(it.id, it.quantity + 1)}>+</button>
-                  </div>
-                </div>
-                <div>
-                  <div className="pr">{fmt(it.price * it.quantity)}</div>
-                  <button className="rm" type="button" onClick={() => onRemove(it.id)}>Видалити</button>
-                </div>
+    <section className="bg-ivory py-12 md:py-16" aria-labelledby="about-title">
+      <div className="wrap grid gap-10 lg:grid-cols-[1fr_1.1fr]">
+        <div>
+          <span className="eyebrow">Про магазин</span>
+          <h2 id="about-title" className="section-title mt-2">
+            {ABOUT_SEO.title}
+          </h2>
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            {[
+              ['585', 'проба золота'],
+              ['925', 'проба срібла'],
+              ['1–3', 'дні доставки'],
+            ].map(([b, s]) => (
+              <div key={s} className="rounded-2xl bg-white px-4 py-5 text-center">
+                <b className="display block text-[34px] text-gold-deep">{b}</b>
+                <span className="text-[12px] text-ink-3">{s}</span>
               </div>
             ))}
           </div>
-          <div className="cart-foot">
-            <div className="ship-note">
-              {left > 0 ? <>До безкоштовної доставки: <b>{fmt(left)}</b></> : <>✦ Безкоштовна доставка активована</>}
-            </div>
-            <div className="bar"><i style={{ width: pct + '%' }} /></div>
-            <div className="tot"><span>Разом</span><b>{fmt(total)}</b></div>
-            <a className="btn btn-gold" href="/checkout">Оформити замовлення <Ic.arrow /></a>
-          </div>
-        </>
-      )}
-    </aside>
-  );
-}
-
-/* ============================ QUICK VIEW ============================ */
-function QuickView({ p, onClose, onAdd }: { p: ExtendedProduct | null; onClose: () => void; onAdd: (p: ExtendedProduct) => void }) {
-  const stock = p ? statusLabels[p.status] ?? statusLabels.in_stock : statusLabels.in_stock;
-  return (
-    <div className={`qv-wrap${p ? ' show' : ''}`} onClick={onClose}>
-      {p && (
-        <div className="qv" onClick={(e) => e.stopPropagation()}>
-          <button className="icon-btn qv-close" type="button" onClick={onClose}><Ic.close /></button>
-          <div className="qv-media">
-            <PhotoSlot src={p.image || null} alt={p.nameUa} label={p.nameUa} />
-          </div>
-          <div className="qv-body">
-            <div className="mat">{matName(p.material)}</div>
-            <h2>{p.nameUa}</h2>
-            <p className="desc">{p.description}</p>
-            <div className="price">
-              <span className="now">{fmt(p.price)}</span>
-            </div>
-            <div className="specs">
-              <div className="sp"><span>Метал</span><b>{matName(p.material)}{probe(p.material)}</b></div>
-              <div className="sp"><span>Наявність</span><b>{stock.label}</b></div>
-              <div className="sp"><span>Доставка</span><b>Нова Пошта, 1–2 дні</b></div>
-            </div>
-            <div className="qv-cta">
-              <button className="btn btn-gold" style={{ flex: 1 }} type="button" onClick={() => { onAdd(p); onClose(); }}>До кошика</button>
-              <a href={`tel:${TEL}`} className="btn btn-ghost">Купити в 1 клік</a>
-            </div>
-          </div>
         </div>
-      )}
-    </div>
+        <div className="prose-vk">
+          <p className="!text-ink">{ABOUT_SEO.lead}</p>
+          <details className="group">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-2 font-semibold text-ink [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">Читати більше</span>
+              <span className="hidden group-open:inline">Згорнути</span>
+              <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="mt-4">
+              {ABOUT_SEO.more.map((t) => (
+                <p key={t}>{t}</p>
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
   );
 }
 
-/* ============================ ROOT ============================ */
-export default function Storefront({ initialProducts }: { initialProducts: ExtendedProduct[] }) {
-  const products = initialProducts;
+export function FaqBlock({ title = 'Питання та відповіді' }: { title?: string }) {
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  };
+  return (
+    <section className="wrap py-12 md:py-16" aria-labelledby="faq-title">
+      <div className="grid gap-8 lg:grid-cols-[1fr_1.6fr]">
+        <div>
+          <span className="eyebrow">Допомога</span>
+          <h2 id="faq-title" className="section-title mt-2">
+            {title}
+          </h2>
+          <p className="mt-4 max-w-sm text-[14.5px] text-ink-2">Не знайшли відповідь? Телефонуйте — ми на зв’язку щодня.</p>
+          <Link href="/kontakty" className="btn btn-line mt-5">
+            Контакти <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="acc">
+          {FAQ.map((f, i) => (
+            <details key={f.q} open={i === 0}>
+              <summary>
+                {f.q}
+                <ChevronDown size={18} className="chev" />
+              </summary>
+              <div className="acc-body">{f.a}</div>
+            </details>
+          ))}
+        </div>
+      </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(ld) }} />
+    </section>
+  );
+}
 
-  const [scrolled, setScrolled] = useState(false);
-  const [topHide, setTopHide] = useState(false);
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const [activeCat, setActiveCat] = useState('kabluchky');
-  const [mnavOpen, setMnavOpen] = useState(false);
-  const [quick, setQuick] = useState<ExtendedProduct | null>(null);
-  const [wishlist, setWishlist] = useState<Set<string>>(() => new Set());
+export function BlogTeaser() {
+  return (
+    <section className="wrap py-12 md:py-16" aria-labelledby="blog-title">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">Блог</span>
+          <h2 id="blog-title" className="section-title mt-2">
+            Корисно знати
+          </h2>
+        </div>
+        <Link href="/blog" className="link-more">
+          Усі статті <ArrowRight size={15} />
+        </Link>
+      </div>
+      <ul className="grid gap-5 md:grid-cols-3">
+        {ARTICLES.map((a) => (
+          <li key={a.slug}>
+            <Link href={`/blog/${a.slug}`} className="group block h-full rounded-2xl border border-line bg-white p-6 transition hover:border-line-2 hover:shadow-[var(--shadow-soft)]">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-gold-soft text-gold-deep">
+                <CatIcon name={a.icon} size={28} />
+              </span>
+              <p className="mt-5 text-xs text-ink-3">
+                {new Date(a.date).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })} · {a.minutes} хв
+              </p>
+              <h3 className="mt-2 font-display text-[24px] font-semibold leading-tight group-hover:text-gold-deep">{a.title}</h3>
+              <p className="mt-2 text-[14px] text-ink-2">{a.excerpt}</p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
-  // cart from the existing Zustand store
-  const items = useCartStore((s) => s.items);
-  const cartOpen = useCartStore((s) => s.isOpen);
-  const addItem = useCartStore((s) => s.addItem);
-  const removeItem = useCartStore((s) => s.removeItem);
-  const updateQuantity = useCartStore((s) => s.updateQuantity);
-  const toggleCart = useCartStore((s) => s.toggleCart);
+const HERO_IMG = (name: string) => `/hero/${name}.webp`;
 
-  useReveal();
+export default function Storefront({ products }: { products: ExtendedProduct[] }) {
+  // з фото — першими (виглядає краще), далі за порядком з адмінки
+  const imgFirst = (a: ExtendedProduct, b: ExtendedProduct) =>
+    (a.status === 'sold' ? 1 : 0) - (b.status === 'sold' ? 1 : 0) || (a.image ? 0 : 1) - (b.image ? 0 : 1) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  const hits = withBadge(products, 'hit').sort(imgFirst);
+  const news = withBadge(products, 'new').sort(imgFirst);
+  const sale = withBadge(products, 'sale').sort(imgFirst);
+  const available = products.filter((p) => p.status !== 'sold');
+  const rings = products.filter((p) => p.category === 'ring').sort(imgFirst);
+  const gifts = available.filter((p) => p.price <= 2000).sort(imgFirst);
 
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 30);
-      setTopHide(y > 120);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  const slides: HeroSlide[] = [
+    {
+      eyebrow: news.length ? 'Новинки сезону' : 'Нова колекція',
+      title: 'Сяйво, що залишається',
+      accent: 'з вами',
+      text: 'Каблучки, сережки та підвіски, які хочеться носити щодня. Дбайливо обираємо й пакуємо кожну прикрасу.',
+      href: news.length ? '/catalog/novynky' : '/catalog',
+      cta: news.length ? 'Дивитися новинки' : 'До каталогу',
+      tone: 'ivory',
+      image: HERO_IMG('slide-1'),
+    },
+    {
+      eyebrow: 'Срібло 925',
+      title: 'Легкість срібла',
+      accent: 'на кожен день',
+      text: 'Мінімалістичні прикраси зі срібла з родієвим покриттям — не темніють і пасують до всього.',
+      href: '/catalog/sriblo',
+      cta: 'Обрати срібло',
+      tone: 'sage',
+      image: HERO_IMG('slide-2'),
+    },
+    {
+      eyebrow: 'Золото 585',
+      title: 'Класика,',
+      accent: 'що не виходить з моди',
+      text: 'Жовте й рожеве золото, фіаніти та перли — для особливих подій і щоденних образів.',
+      href: '/catalog/zoloto',
+      cta: 'Обрати золото',
+      tone: 'night',
+      image: HERO_IMG('slide-3'),
+    },
+    {
+      eyebrow: 'Ідеї подарунків',
+      title: 'Подарунок,',
+      accent: 'який запам’ятають',
+      text: 'Готові комплекти у фірмовому пакованні. Безкоштовна доставка від 1 500 ₴.',
+      href: '/catalog/komplekty',
+      cta: 'Комплекти',
+      tone: 'blush',
+      image: HERO_IMG('slide-4'),
+    },
+  ];
 
-  const closeCart = useCallback(() => { if (useCartStore.getState().isOpen) toggleCart(); }, [toggleCart]);
-
-  const anyOverlay = catalogOpen || cartOpen || mnavOpen || !!quick;
-  useEffect(() => { document.body.style.overflow = anyOverlay ? 'hidden' : ''; }, [anyOverlay]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setCatalogOpen(false); setMnavOpen(false); setQuick(null); closeCart(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [closeCart]);
-
-  const addToCart = useCallback((p: ExtendedProduct) => { addItem(p); }, [addItem]);
-  const toggleWish = useCallback((id: string) => setWishlist((w) => { const n = new Set(w); n.has(id) ? n.delete(id) : n.add(id); return n; }), []);
-  const openCatalog = useCallback((id?: string) => { if (id) setActiveCat(id); setCatalogOpen(true); }, []);
-  const jumpToCatalog = useCallback(() => {
-    const el = document.getElementById('catalog');
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
-  }, []);
-
-  const cartCount = items.reduce((s, i) => s + i.quantity, 0);
-  const closeAll = () => { setCatalogOpen(false); setMnavOpen(false); closeCart(); };
+  const byOrder = [...available].sort((a, b) => (a.image ? 0 : 1) - (b.image ? 0 : 1) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   return (
     <>
-      <div className={`topbar${topHide ? ' hide' : ''}`}>
-        <div className="wrap">
-          <div className="ship"><span className="marquee-glyph">✦</span> Безкоштовна доставка від <b>1 500 ₴</b> · Оплата частинами ПриватБанк</div>
-          <div className="links">
-            <a href="#about">Про нас</a>
-            <a href="#">Наші магазини</a>
-            <a href="#">Акції</a>
-            <a href="#">УКР</a>
-          </div>
-        </div>
-      </div>
-
-      <Header
-        onCatalog={() => setCatalogOpen(true)}
-        onCart={toggleCart}
-        onMenu={() => setMnavOpen(true)}
-        cartCount={cartCount}
-        wishCount={wishlist.size}
-        scrolled={scrolled}
+      <h1 className="sr-only">VIALKO — ювелірний інтернет-магазин: прикраси із золота, срібла та біжутерія</h1>
+      <HeroSlider slides={slides} />
+      <Benefits />
+      <QuickCategories all={products} />
+      <ProductTabs
+        title="Хіти та новинки"
+        tabs={[
+          { key: 'hit', label: 'Хіти продажу', href: '/catalog/khity', items: hits.slice(0, 12), total: hits.length },
+          { key: 'new', label: 'Новинки', href: '/catalog/novynky', items: news.slice(0, 12), total: news.length },
+          { key: 'sale', label: 'Акції', href: '/catalog/aktsii', items: sale.slice(0, 12), total: sale.length },
+          ...(hits.length + news.length + sale.length === 0 ? [{ key: 'all', label: 'Популярне', href: '/catalog', items: byOrder.slice(0, 15) }] : []),
+        ]}
       />
-
-      <main>
-        <Hero />
-        <Categories onOpen={openCatalog} />
-        <Catalog products={products} onAdd={addToCart} onQuick={setQuick} wishlist={wishlist} onWish={toggleWish} />
-        <About />
-        <Trust />
-        <Partners />
-      </main>
-      <Footer />
-
-      <nav className={`mnav${mnavOpen ? ' open' : ''}`}>
-        <button className="icon-btn" style={{ alignSelf: 'flex-end' }} type="button" onClick={() => setMnavOpen(false)}><Ic.close /></button>
-        <a href="#catalog" onClick={() => setMnavOpen(false)}>Каталог</a>
-        {CATEGORIES.map((c) => <a key={c.id} href="#categories" onClick={() => setMnavOpen(false)}>{c.name}</a>)}
-        <a href="#about" onClick={() => setMnavOpen(false)}>Про нас</a>
-        <a href={`tel:${TEL}`} onClick={() => setMnavOpen(false)}>{PHONE}</a>
-      </nav>
-
-      <CatalogPanel open={catalogOpen} onClose={() => setCatalogOpen(false)} activeCat={activeCat} setActiveCat={setActiveCat} onJumpToCatalog={jumpToCatalog} />
-      <CartDrawer open={cartOpen} onClose={closeCart} items={items} onQty={updateQuantity} onRemove={removeItem} />
-      <QuickView p={quick} onClose={() => setQuick(null)} onAdd={addToCart} />
-
-      <div className={`scrim${anyOverlay ? ' show' : ''}`} onClick={() => { closeAll(); setQuick(null); }} />
+      <PromoDuo all={products} />
+      {rings.length > 3 && (
+        <section className="wrap py-10 md:py-14" aria-labelledby="rings-title">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Каблучки</span>
+              <h2 id="rings-title" className="section-title mt-2">
+                Каблучки на будь-який привід
+              </h2>
+            </div>
+            <Link href="/catalog/kabluchky" className="link-more">
+              Усі каблучки <ArrowRight size={15} />
+            </Link>
+          </div>
+          <Carousel label="Каблучки" slideClass="[--slide:50%] md:[--slide:33.333%] lg:[--slide:25%] xl:[--slide:20%]">
+            {rings.slice(0, 12).map((p) => (
+              <ProductCard key={p.id} p={p} sizes="(max-width: 767px) 50vw, (max-width: 1279px) 25vw, 260px" />
+            ))}
+          </Carousel>
+        </section>
+      )}
+      {gifts.length > 3 && (
+        <section className="wrap py-10 md:py-14" aria-labelledby="gifts-title">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Подарунки</span>
+              <h2 id="gifts-title" className="section-title mt-2">
+                Подарунки до {money(2000)}
+              </h2>
+            </div>
+            <Link href="/catalog?price=1000-3000" className="link-more">
+              Більше ідей <ArrowRight size={15} />
+            </Link>
+          </div>
+          <Carousel label="Подарунки" slideClass="[--slide:50%] md:[--slide:33.333%] lg:[--slide:25%] xl:[--slide:20%]">
+            {gifts.slice(0, 12).map((p) => (
+              <ProductCard key={p.id} p={p} sizes="(max-width: 767px) 50vw, (max-width: 1279px) 25vw, 260px" />
+            ))}
+          </Carousel>
+        </section>
+      )}
+      <CatalogDirectory all={products} />
+      <AboutSeo />
+      <BlogTeaser />
+      <FaqBlock />
+      <Partners />
     </>
   );
 }
