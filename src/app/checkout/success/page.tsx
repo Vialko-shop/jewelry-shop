@@ -1,38 +1,35 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Truck } from 'lucide-react';
 import Link from 'next/link';
-import Header from '@/components/Header';
 import { Suspense } from 'react';
 
 function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get('order');
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--cream)' }}>
-      <div className="text-center max-w-md py-20">
-        <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #C9A84C, #8B6914)' }}>
-          <CheckCircle size={40} color="white" />
-        </div>
-        <p className="text-xs tracking-[0.4em] uppercase mb-3" style={{ color: 'var(--gold)', fontFamily: 'Jost' }}>
-          ✦ Оплата успішна ✦
-        </p>
-        <h1 className="text-4xl mb-4" style={{ fontFamily: 'Cormorant Garamond' }}>Дякуємо!</h1>
+    <div className="wrap grid min-h-[60vh] place-items-center py-16 text-center">
+      <div className="max-w-lg">
+        <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-gold-soft text-gold-deep">
+          <CheckCircle size={40} />
+        </span>
+        <p className="eyebrow mt-6 justify-center">Дякуємо за замовлення</p>
+        <h1 className="display mt-2 text-5xl">Дякуємо!</h1>
         {orderId && (
-          <p className="text-sm mb-2" style={{ color: 'var(--stone)', fontFamily: 'Jost' }}>
-            Замовлення <strong style={{ color: 'var(--gold-dark)' }}>#{orderId}</strong>
+          <p className="mt-3 text-sm text-ink-2">
+            Замовлення <strong className="text-ink">#{orderId}</strong>
           </p>
         )}
-        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--stone)', fontFamily: 'Jost', fontWeight: 300 }}>
-          Ваше замовлення прийнято і буде відправлено Новою Поштою протягом 1-2 робочих днів.
-          Ми зв'яжемося з вами для підтвердження.
+        <p className="mt-4 leading-relaxed text-ink-2">
+          Ми отримали ваше замовлення та зв&apos;яжемося з вами для підтвердження. Після оплати прикраси в наявності відправляємо Новою поштою протягом 1–2 робочих днів.
         </p>
-        <div className="p-4 mb-8 text-sm" style={{ background: 'white', border: '1px solid var(--gold-light)', fontFamily: 'Jost', color: 'var(--stone)' }}>
-          🚚 Відстежити замовлення можна на сайті <strong>novaposhta.ua</strong><br/>
-          по номеру ТТН, який ми надішлемо вам SMS.
+        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-line p-4 text-left text-sm text-ink-2">
+          <Truck size={22} className="flex-none text-gold-deep" />
+          <span>
+            Відстежити посилку можна на сайті <strong className="text-ink">novaposhta.ua</strong> за номером ТТН, який ми надішлемо вам.
+          </span>
         </div>
-        <Link href="/" className="btn-gold px-10 py-4 inline-block">
+        <Link href="/catalog" className="btn btn-ink mt-8">
           Продовжити покупки
         </Link>
       </div>
@@ -42,11 +39,8 @@ function SuccessContent() {
 
 export default function SuccessPage() {
   return (
-    <>
-      <Header />
-      <Suspense fallback={<div>Завантаження...</div>}>
-        <SuccessContent />
-      </Suspense>
-    </>
+    <Suspense fallback={<div className="wrap py-20 text-center text-ink-3">Завантаження...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }

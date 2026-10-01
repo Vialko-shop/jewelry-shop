@@ -7,6 +7,9 @@ export interface ExtendedProduct extends Product {
   image2?: string;
   image3?: string;
   badges?: string[];
+  /** Стара ціна (для знижок). З'являється, якщо в таблиці є колонка old_price */
+  oldPrice?: number;
+  sortOrder?: number;
 }
 
 // ─── РЕАЛЬНІ ТОВАРИ МАМИ (фото Gemini AI) ────────────────────────────────────
